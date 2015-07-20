@@ -1,0 +1,105 @@
+/*
+  SRCPServerSerial - SRCP Server welche Meldungen mittels
+  der Seriellen Schnittstellen empfaengt und sendet.
+
+  Siehe auch: http://srcpd.sourceforge.net/srcp/
+
+  Copyright (c) 2013 Marcel Bernet.  All right reserved.
+
+  [GNU General Public License]
+ */
+
+#include "SRCPServerSerial1.h"
+#include "Logger.h"
+
+#define SERIAL Serial1
+
+namespace srcp
+{
+
+// Input Buffer
+char buf[64];
+unsigned long lasts = millis();
+
+/**
+ * Oeffnet den Seriallen Port mit speed, 8 bit, No Parity und 1 Stop Bit.
+ * Flow/Control unterstuetzt das Arduino Port.
+ */
+void SRCPServerSerial1::begin(unsigned long speed)
+{
+  INFO2( "open SERIAL with baud ", speed );
+/* RM -- don't really open anything, it's already done by DigiFi
+  SERIAL.begin( speed );
+  while ( !SERIAL )
+  {
+    ; // wait for serial port to connect. Needed for Leonardo only
+  }
+
+  session = new SRCPSession();
+  parser = new SRCPParser();
+*/
+  session = &_session;
+  parser = &_parser;
+}
+
+/**
+ * Prueft ob Daten am Seriellen Port anliegt und wenn ja werden diese
+ * Verarbeitet.
+ */
+command_t* SRCPServerSerial1::dispatch( int fbDelay )
+{
+  // keine Daten vorhanden - exit
+  if  ( ! SERIAL.available() )
+  {
+    // Info Server
+    if  ( session->getStatus() != srcp::UNDEFINED && session->isPowerOn() )
+    {
+      if  ( lasts+fbDelay < millis() )
+      {
+        session->infoFeedback( &SERIAL );
+        lasts = millis();
+      }
+    }
+    return  ( 0 );
+  }
+
+  int count = 0;
+  while ( true )
+  {
+    if  ( ! SERIAL.available() )
+      continue;
+
+    if  ( session->getStatus() == srcp::UNDEFINED )
+      session->setStatus( srcp::HANDSHAKE );
+
+    int i = SERIAL.read();
+    // NL beendet lesen
+    if  ( i == '\n' )
+    {
+      if  ( count == 0 )
+        continue;
+      break;
+    }
+    // Sonderzeichen ignorieren
+    if  ( i == '\r' )
+      continue;
+    buf[count++] = i;
+  }
+  buf[count] = '\0';
+
+  DEBUG3( "recv: ", session->getStatus(), buf );
+
+  // ASCII SRCP Commands parsen und abstellen in cmd
+  parser->parse( cmd, buf );
+  // SRCP Commands verarbeiten, in rc steht die SRCP Rueckmeldung
+  char* rc = session->dispatch( cmd );
+
+  // Rueckmeldung an Host, mit \r\n aber ohne flush()!
+  DEBUG3( "send: ", session->getStatus(), rc );
+  SERIAL.println( rc );
+
+  return  ( &cmd );
+}
+
+} /* namespace srcp */
+

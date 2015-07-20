@@ -1,20 +1,29 @@
 #include "RalfDigiFi.h"
+#include "SRCPServerSerial1.h"
+#include "SRCPDeviceManager.h"
+#include "FBSwitchSensor.h"
+#include "GATurnout.h"
+#include "Logger.h"
 
 #define LED_PIN     13
 #define RELAY_PIN_1 90
 #define RELAY_N      8
+
+#define SENSOR_POLLING  500     // Sensor polling interval (in millis I guess)
 
 DigiFi _wifi;
 
 int _relay = 0;
 unsigned long _relay_ms = 0;
 char _recv_buf_1024[1024];
+srcp::SRCPServerSerial1 _server;
 
 // --------------------------------
 void setup() {
   setup_pause();
   setup_wifi();
   setup_relays();
+  setup_srcp();
 }
 
 void setup_pause() {
@@ -23,6 +32,7 @@ void setup_pause() {
   // This should give enough to reprogram a bad behaving program.
   for (int i = 0; i < 5 && !Serial.available(); i++) {
     Serial.println("Enter any key to begin");
+    blink();
     delay(1000);
   }
 }
@@ -53,6 +63,16 @@ void setup_relays() {
   }
 }
 
+dev::FBSwitchSensor _fb1(1, A0, A3);
+dev::GATurnout _sw1(1, RELAY_PIN_1 + 0, RELAY_PIN_1 + 1);
+
+void setup_srcp() {
+  DeviceManager.addFeedback(&_fb1);
+  DeviceManager.addAccessoire(&_sw1);
+  _server.begin(9600);
+  INFO ( "Server listen " );
+}
+
 // -------------------------------
 
 void blink() {
@@ -61,13 +81,13 @@ void blink() {
   digitalWrite(LED_PIN, LOW);
 }
 
-void trip_relay(int index /* 0..RELAY_N-1 */) {
+void __trip_relay(int index /* 0..RELAY_N-1 */) {
   digitalWrite(RELAY_PIN_1 + index, HIGH);
   delay(100);
   digitalWrite(RELAY_PIN_1 + index, LOW);
 }
 
-void process_relay() {
+void __process_relay() {
   unsigned long now_ms = millis();
   if (_relay_ms <= now_ms) {
     _relay_ms = now_ms + 1000; // 1 second
@@ -75,7 +95,7 @@ void process_relay() {
     for (int i = 0; i < RELAY_N; i++) {
       digitalWrite(RELAY_PIN_1 + i, LOW);
       if (_relay == i) {
-        trip_relay(i);
+        __trip_relay(i);
       }
     }
     _relay++;
@@ -85,7 +105,7 @@ void process_relay() {
   }
 }
 
-void process_wifi_test() {
+void __process_wifi_test() {
   if (_wifi.serverRequest()){
     Serial.print("Request for: ");
     Serial.println(_wifi.serverRequestPath());
@@ -97,7 +117,7 @@ void process_wifi_test() {
   }
 }
 
-void process_wifi() {
+void __process_wifi() {
   if (Serial1.available()){
     int i;
     for (i = 0; i < 1023 && Serial1.available(); i++) {
@@ -113,7 +133,7 @@ void process_wifi() {
     if (i > 0) {
       char c = _recv_buf_1024[0];
       if (c >= '1' && c <= '8') {
-        trip_relay(c - '1');
+        __trip_relay(c - '1');
       }
     }
   }
@@ -122,8 +142,10 @@ void process_wifi() {
 void loop() {
   blink();
 
-  process_wifi();
+  //--process_wifi();
   //--process_relay();
+  _server.dispatch( SENSOR_POLLING );
+  DeviceManager.refresh();
 
   delay(10 /*ms*/);
 }
