@@ -51,7 +51,7 @@ void setup_wifi() {
 
   Serial.println("Connected to wifi!");
   Serial.print("Server running at: ");
-  String address = _wifi.server(8080); //sets up server and returns IP
+  String address = _wifi.server(4303); //sets up server and returns IP
   Serial.println(address); 
 }
 

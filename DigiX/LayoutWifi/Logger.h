@@ -52,7 +52,8 @@
 /**
  * Allgemeine Initialisierungen
  */
-/* RM--#if ( LOGGER_LEVEL > OFF_LEVEL)
+/* RM--
+#if ( LOGGER_LEVEL > OFF_LEVEL)
 
 #if ( __AVR_ATmega2560__ )
 #define Logger	Serial3
