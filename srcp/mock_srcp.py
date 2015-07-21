@@ -15,6 +15,16 @@ _sessions = []
 _time = 0
 _continue = True
 
+def toggle_turnout(index):
+    print "Toggle turnout", index
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect( ("192.168.1.140", 8080) )
+    try:
+        sock.sendall("@%02d\n" % (index+1))
+    finally:
+        sock.close()
+
+
 class SessionRequestHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
@@ -75,6 +85,12 @@ class SessionRequestHandler(SocketServer.BaseRequestHandler):
             elif c == "GET 8 DESCRIPTION":
                 self.reply("100 INFO 8 FB 1 1")      # point-detector #1, value 1
                 self.reply("100 INFO 8 FB 2 0")      # point-detector #2, value 0
+            elif c.startswith("SET 6 GA 1 ") or c.startswith("SET 7 GA 1 "):  # 6=DCC bus, 7=rocrail specific bus
+                value = c[11]
+                print value
+                if value == '0' or value == '1':
+                    toggle_turnout(int(value))
+                self.reply("200 OK")
             elif c == "SET 1 POWER ON":
                 self.reply("200 OK")
             elif c == "GET 1 POWER":

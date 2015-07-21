@@ -9,6 +9,12 @@
  bool digiFiServer = false;
  uint32_t digiFiActivityTimeout = 0;
 
+#define CONNECTED_NOT 0
+#define CONNECTED 1
+#define CONNECTED_BECAUSE_DATA 1
+#define CONNECTED_BECAUSE_RECENT 2
+
+ 
 DigiFi::DigiFi()
 {
 
@@ -367,23 +373,23 @@ bool DigiFi::isRecentActivity() {
 
 uint8_t DigiFi::connected(){
 
-    uint8_t ret = 0;
+    uint8_t ret = CONNECTED_NOT;
 
     
     if(Serial1.available() > 0)
-            return 1;
+            return CONNECTED_BECAUSE_DATA;
     
     if(millis() < digiFiActivityTimeout)
-        return 1;
+        return CONNECTED_BECAUSE_RECENT;
     
-
     startATMode();
 
     debug("Checking for link build up");
     String status=getTCPLnk();
 
-    if (status.substring(0,6)=="+ok=on")
-        ret = 1;
+    if (status.substring(0,6)=="+ok=on") {
+        ret = CONNECTED;
+    }
 
     endATMode();
 
