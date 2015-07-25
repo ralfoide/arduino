@@ -3,15 +3,30 @@
 
 #define LED_PIN     13
 #define RELAY_PIN_1 90
-#define RELAY_N      8
-#define IN_PIN_1   107
-#define IN_N         1
+#define TURNOUT_N    4
+#define RELAY_N     (2 * TURNOUT_N)
+#define RELAY_NORMAL (T) (2 * (T))
+#define RELAY_REVERSE(T) ((2 * (T)) + 1)
+
+#define SENSOR_PIN_1   107
+#define SENSOR_N         1
+#define AIU_N            1
 
 DigiFi _wifi;
 
-int _relay = 0;
-unsigned long _blink_ms = 0;
-char _buf_1024[1024];
+unsigned long _sensor_ms = 0;
+char          _buf_1024[1024];
+unsigned int  _sensors[AIU_N];
+unsigned char _turnouts[TURNOUT_N];
+
+const char *hex = "0123456789ABCDEF";
+
+#define TURNOUT_NORMAL  'N'
+#define TURNOUT_REVERSE 'R'
+
+#define READ_BIT (I, N) (((I) &  (1<<N)) >> N)
+#define SET_BIT  (I, N)  ((I) |  (1<<N))
+#define CLEAR_BIT(I, N)  ((I) & ~(1<<N))
 
 // --------------------------------
 
@@ -23,7 +38,8 @@ void setup() {
 }
 
 void setup_pause() {
-    //DigiX trick - since we are on serial over USB wait for character to be entered in serial terminal
+    // DigiX trick - since we are on serial over USB wait for character to be
+    // entered in serial terminal
     // Delay start by up to 5 seconds unless a key is pressed.
     // This should give enough to reprogram a bad behaving program.
     for (int i = 0; i < 5 && !Serial.available(); i++) {
@@ -51,9 +67,16 @@ void setup_wifi() {
     Serial.println(address); 
 }
 
-void setup_inputs() {
-    for (int i = 0; i < IN_N; i++) {
-        pinMode(IN_PIN_1, INPUT_PULLUP);
+void setup_sensors() {
+    int j = 0;
+    for (int aiu = 0; aiu < AIU_N; aiu++) {    
+        unsigned int s = 0;
+        for (int i = 0; i < 14 && j < SENSOR_N; i++, j++) {
+            if (digitalRead(SENSOR_PIN_1 + i) == HIGH) {
+                s = SET_BIT(s, i);
+            }
+        }
+        _sensors[aiu] = s;
     }
 }
 
@@ -62,6 +85,11 @@ void setup_relays() {
     for (int i = 0; i < RELAY_N; i++) {
         pinMode(RELAY_PIN_1 + i, OUTPUT);
         digitalWrite(RELAY_PIN_1 + i, LOW);
+    }
+    
+    for (int i = 0; i < TURNOUT_N; i++) {
+        _turnouts[i] = TURNOUT_NORMAL;
+        trip_relay(RELAY_NORMAL(i));
     }
 }
 
@@ -80,7 +108,7 @@ void trip_relay(int index /* 0..RELAY_N-1 */) {
 }
 
 bool read_input(int index) {
-    return digitalRead(IN_PIN_1) == HIGH;
+    return digitalRead(SENSOR_PIN_1) == HIGH;
 }
 
 void process_wifi() {
@@ -96,38 +124,80 @@ void process_wifi() {
         Serial.print(buf);
         Serial.println("_");
         if (n >= 2 && *buf == '@') {
+            blink();
             buf++;
-            if (buf[0] == '?' && isAlpha(buf[1])) {
-                int n = buf[1] - 'A';
-                if (n >= 0 && n < IN_N) {
-                    bool state = read_input(n);
-                    buf[0] = state ? '+' : '-';
-                    blink();
-                    _wifi.write((const uint8_t*)_buf_1024, 3);
-                }
-            } else if (isDigit(buf[0]) && isDigit(buf[1])) {
-                int n = 10 * (buf[0] - '0') + (buf[1] - '0');
-                if (n >= 1 && n <= RELAY_N) {
-                    Serial.println("Trip relay");
-                    trip_relay(n - 1);
-                    blink();
-                    _wifi.write((const uint8_t*)_buf_1024, 3);
+            char cmd = *buf;
+
+            if (cmd == 'I' && n == 2) {
+                // Info command: @I\n
+                Serial.println("Info Cmd");
+                // Reply: @IT<00>S<00>\n
+                *(buf++) = 'T'
+                *(buf++) = TURNOUT_N / 10;
+                *(buf++) = TURNOUT_N % 10;
+                *(buf++) = 'S'
+                *(buf++) = AIU_N / 10;
+                *(buf++) = AIU_N % 10;
+                *(buf++) = '\n'
+                _wifi.write((const uint8_t*)_buf_1024, buf - _buf_1024);
+
+            } else if (cmd == 'T' && n == 5) {
+                // Turnout command: @T<00><N|R>\n
+                int turnout = (buf[1] << 8) + buf[2];
+                char direction = buf[3];
+                if (direction == TURNOUT_NORMAL || direction == TURNOUT_REVERSE
+                        && turnout > 0 && turnout <= TURNOUT_N) {
+                    Serial.println("Accepted Turnout Cmd");
+                    if (_turnouts[turnout] != direction) {
+                        trip_relay(direction == TURNOUT_NORMAL ? RELAY_NORMAL(turnout) 
+                                                               : RELAY_REVERSE(turnout));
+                        _turnouts[turnout] = direction;
+                        // Reply is the same command
+                        _buf_1024[5] = '\n';
+                        _wifi.write((const uint8_t*)_buf_1024, 6);
+                    }
+                } else {
+                    Serial.println("Rejected Turnout Cmd");
                 }
             }
         }
     }
 }
 
-void loop() {
-    if (_blink_ms < millis()) {
-        _blink_ms = millis() + 1000;
-        blink();
-
-        // keep connected
-        if (_wifi.isRecentActivity()) {
-            _wifi.write('.');
-        }
+void poll_sensor() {
+    if (_sensors_ms > millis()) {
+        return;
     }
+    _sensors_ms = millis() + 500;   // twice per second
+    blink();
 
+    int j = 0;
+    for (int aiu = 0; aiu < AIU_N; aiu++) {    
+        unsigned int s = _sensors[aiu];
+        for (int i = 0; i < 14 && j < SENSOR_N; i++, j++) {
+            if (digitalRead(SENSOR_PIN_1 + i) == HIGH) {
+                s = SET_BIT(s, i);
+            } else {
+                s = CLEAR_BIT(s, i);
+            }
+        }
+        _sensors[aiu] = s;
+
+        char *buf = _buf_1024;
+        *(buf++) = '@';
+        *(buf++) = 'S';
+        *(buf++) = '0';
+        *(buf++) = '1' + aiu;        
+        *(buf++) = hex[(s >> 12) & 0x0F];
+        *(buf++) = hex[(s >>  8) & 0x0F];
+        *(buf++) = hex[(s >>  4) & 0x0F];
+        *(buf++) = hex[(s >>  0) & 0x0F];
+        *(buf++) = '\n';
+        _wifi.write((const uint8_t*)_buf_1024, buf - _buf_1024);
+    }    
+}
+
+void loop() {
     process_wifi();
+    poll_sensors();
 }
