@@ -1,68 +1,58 @@
 #!/usr/bin/python
 
 import socket
-import threading
-import SocketServer
 import time
 import sys
 
-_continue = True
 
-def toggle_turnout(index):
-    print "Toggle turnout", index
-#    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#    sock.connect( ("192.168.1.140", 8080) )
-#    try:
-#        sock.sendall("@%02d\n" % (index+1))
-#    finally:
-#        sock.close()
+HOST = ''                 # Symbolic name meaning all available interfaces
+PORT = 8080
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST, PORT))
+s.listen(1)
+conn, addr = s.accept()
+print 'Connected by', addr
 
+buf_len = 5
+buf = bytearray(buf_len)
 
-class SessionRequestHandler(SocketServer.BaseRequestHandler):
-    def __init__(self, request, client_address, server):
-        SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
-
-    def setup(self):
-        print "Start Request"
-
-    def reply(self, s):
-        self.request.sendall(s + "\n")
-
-    def handle(self):
-        print type(self.request)
-        print dir(self.request)
-        
-        buf_len = 5
-        buf = bytearray(buf_len)
-        n = self.request.recv_into(buf, buf_len)
-        print ">", n, buf[0], buf[1], buf[2], buf[3], buf[4] 
-        
-        global _continue
-        _continue = False
-        #while True:
-        #    c = self.request.recv(1000)
-        #    print ">", c
-
-    def finish(self):
-        print "End Request"
-
-
-
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    pass
-
+while True:
+    n = conn.recv_into(buf, buf_len)
+    if n == 0:
+        continue
+    c = buf[0]
+    print ">", n, "%02x|%c" % (c, c > 32 and c or " "), "%02x" % buf[1], "%02x" % buf[2], "%02x" % buf[3], "%02x" % buf[4] 
     
-server = ThreadedTCPServer( ("localhost", 8080), SessionRequestHandler)
-server_thread = threading.Thread( target=server.serve_forever )
-server_thread.daemon = True
-server_thread.start()
+    if n == 1 and c == 0xAA:
+        # reply with version 6.3.8
+        print "Version"
+        conn.send("060308".decode("hex"))
+    elif n == 2 and c == 0x8A:
+        # AIU polling, returns 4 bytes (sensor BE, mask BE, 14 bits max)
+        print "Poll AIU", buf[1]
+        conn.send("3FFF0001".decode("hex"))
+    elif n == 4 and c == 0xAD:
+        # triggering turnouts
+        print "Trigger Acc"
+        addr = (buf[1] << 8) + buf[2]
+        op = buf[3]
+        if op == 3:
+            print "ACC normal direction/ON", addr
+        elif op == 4:
+            print "ACC reverse direction/OFF", addr
+        conn.send("!")
+    elif n == 3 and c == 0x9D:
+        # read one byte from RAM
+        addr = (buf[1] << 8) + buf[2]
+        print "Read RAM at", addr, "(0x%04x)" % addr
+        conn.send("00".decode("hex"))
+    elif n == 2 and c == ord("T"):
+        # Test
+        # reply with version 1.2.3
+        print "Test"
+        conn.send("630")
+    else:
+        conn.send("!")
 
-_c = 0
-while _continue:
-    if _c == 0:
-        print "Server loop running in thread:", server_thread.name
-    _c += 1
-    if _c == 60: _c = 0
-    time.sleep(1) # seconds
+conn.close()
 
-server.shutdown()
