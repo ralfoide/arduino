@@ -1,11 +1,13 @@
+#ifndef __TEST
 #include "RalfDigiFi.h"
+#endif  // !__TEST
 #include <ctype.h>
 
 #define LED_PIN     13
 #define RELAY_PIN_1 90
 #define TURNOUT_N    4
 #define RELAY_N     (2 * TURNOUT_N)
-#define RELAY_NORMAL (T) (2 * (T))
+#define RELAY_NORMAL( T) (2 * (T))
 #define RELAY_REVERSE(T) ((2 * (T)) + 1)
 
 #define SENSOR_PIN_1   107
@@ -14,7 +16,7 @@
 
 DigiFi _wifi;
 
-unsigned long _sensor_ms = 0;
+unsigned long _sensors_ms = 0;
 char          _buf_1024[1024];
 unsigned int  _sensors[AIU_N];
 unsigned char _turnouts[TURNOUT_N];
@@ -24,18 +26,15 @@ const char *hex = "0123456789ABCDEF";
 #define TURNOUT_NORMAL  'N'
 #define TURNOUT_REVERSE 'R'
 
-#define READ_BIT (I, N) (((I) &  (1<<N)) >> N)
-#define SET_BIT  (I, N)  ((I) |  (1<<N))
+#define READ_BIT( I, N) (((I) &  (1<<N)) >> N)
+#define SET_BIT(  I, N)  ((I) |  (1<<N))
 #define CLEAR_BIT(I, N)  ((I) & ~(1<<N))
 
 // --------------------------------
 
-void setup() {
-    setup_pause();
-    setup_wifi();
-    setup_inputs();
-    setup_relays();
-}
+void blink();
+void trip_relay(int);
+
 
 void setup_pause() {
     // DigiX trick - since we are on serial over USB wait for character to be
@@ -93,6 +92,13 @@ void setup_relays() {
     }
 }
 
+void setup() {
+    setup_pause();
+    setup_wifi();
+    setup_sensors();
+    setup_relays();
+}
+
 // -------------------------------
 
 void blink() {
@@ -107,14 +113,7 @@ void trip_relay(int index /* 0..RELAY_N-1 */) {
     digitalWrite(RELAY_PIN_1 + index, LOW);
 }
 
-bool read_input(int index) {
-    return digitalRead(SENSOR_PIN_1) == HIGH;
-}
-
 void process_wifi() {
-      // Accepted commands are @01..16 to trip relay 1..16
-      // and @?A..Z to read sensor A..Z.
-
     int n;
     while (_wifi.available() > 0 && (n = _wifi.readBytes(_buf_1024, 1023)) > 0) {
         if (n > 1023) { n = 1023; }
@@ -132,13 +131,13 @@ void process_wifi() {
                 // Info command: @I\n
                 Serial.println("Info Cmd");
                 // Reply: @IT<00>S<00>\n
-                *(buf++) = 'T'
+                *(buf++) = 'T';
                 *(buf++) = TURNOUT_N / 10;
                 *(buf++) = TURNOUT_N % 10;
-                *(buf++) = 'S'
+                *(buf++) = 'S';
                 *(buf++) = AIU_N / 10;
                 *(buf++) = AIU_N % 10;
-                *(buf++) = '\n'
+                *(buf++) = '\n';
                 _wifi.write((const uint8_t*)_buf_1024, buf - _buf_1024);
 
             } else if (cmd == 'T' && n == 5) {
@@ -164,7 +163,7 @@ void process_wifi() {
     }
 }
 
-void poll_sensor() {
+void poll_sensors() {
     if (_sensors_ms > millis()) {
         return;
     }
