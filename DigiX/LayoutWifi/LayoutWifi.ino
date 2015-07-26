@@ -122,31 +122,31 @@ void process_wifi() {
         Serial.print("recv:_");
         Serial.print(buf);
         Serial.println("_");
-        if (n >= 2 && *buf == '@') {
+        if (n >= 2 && *(buf++) == '@') {
             blink();
-            buf++;
-            char cmd = *buf;
+            char cmd = *(buf++);
 
             if (cmd == 'I' && n == 2) {
                 // Info command: @I\n
                 Serial.println("Info Cmd");
                 // Reply: @IT<00>S<00>\n
                 *(buf++) = 'T';
-                *(buf++) = TURNOUT_N / 10;
-                *(buf++) = TURNOUT_N % 10;
+                *(buf++) = '0' + TURNOUT_N / 10;
+                *(buf++) = '0' + TURNOUT_N % 10;
                 *(buf++) = 'S';
-                *(buf++) = AIU_N / 10;
-                *(buf++) = AIU_N % 10;
+                *(buf++) = '0' + AIU_N / 10;
+                *(buf++) = '0' + AIU_N % 10;
                 *(buf++) = '\n';
                 _wifi.write((const uint8_t*)_buf_1024, buf - _buf_1024);
 
             } else if (cmd == 'T' && n == 5) {
                 // Turnout command: @T<00><N|R>\n
-                int turnout = (buf[1] << 8) + buf[2];
-                char direction = buf[3];
-                if (direction == TURNOUT_NORMAL || direction == TURNOUT_REVERSE
+                int turnout = ((buf[0] - '0') << 8) + (buf[1] - '0');
+                char direction = buf[2];
+                if ((direction == TURNOUT_NORMAL || direction == TURNOUT_REVERSE)
                         && turnout > 0 && turnout <= TURNOUT_N) {
                     Serial.println("Accepted Turnout Cmd");
+                    turnout--; // cmd index is 1-based but array & relays are 0-based
                     if (_turnouts[turnout] != direction) {
                         trip_relay(direction == TURNOUT_NORMAL ? RELAY_NORMAL(turnout) 
                                                                : RELAY_REVERSE(turnout));
