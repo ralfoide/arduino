@@ -13,11 +13,12 @@ package main
   - Shared model: sensor state, turnout states (atomic access.)
   - Slice of channels to receive sensor-updates.  [maybe?]
   - Slice of channels to receive turnout-updates. [maybe?]
+  - Atomic boolean quitting
 
   - DigiX client (go loop).
     - Argument: channel to receive turnout commands.
     - Keep a permanent connection to the digix, re-opening it once closed.
-        - Do *once* an Info command to get the number of turnouts/sensors.
+        - Do *once* an info command to get the number of turnouts/sensors.
             then release the init channel.
         - Polls turnout channel and emits turnouts commands when needed.
             - Don't update internal turnout state, this is done from reading the DigiX.
@@ -45,11 +46,33 @@ package main
 */
 
 import "fmt"
+import "net"
 
+const DigiHost = "192.168.1.140:8080"
 
-func digix_client(server_init chan bool) {
+func DigiClient(server_init chan bool) error {
 	fmt.Printf("Start DigiX Client.\n")
-    server_init <- true
+
+    init_once := true
+
+    for {    
+        fmt.Printf("Connecting to DigiX Client...\n")
+        conn, err := net.Dial("tcp", DigiHost)  // TODO parameter
+        if err == nil {
+        
+            if init_once {
+                server_init <- true
+            }
+            
+            conn.Close()
+        }
+        
+        if err != nil {
+            fmt.Printf("DigiX Client error: %s\n", err)
+        }
+    }
+    
+    return nil
 }
 
 func nce_server(server_init, server_end chan bool) {
@@ -72,7 +95,7 @@ func main() {
     server_init := make(chan bool)
     server_end := make(chan bool)
 
-    go digix_client(server_init);
+    go DigiClient(server_init);
     <-server_init
 
     go nce_server(server_init, server_end);
