@@ -19,5 +19,5 @@ function checkout() {
 
 checkout DigiFi https://github.com/digistump/DigiFi.git
 
-checkout srcp/microSRCP https://github.com/mc-b/microSRCP.git
+# checkout layout_wifi/microSRCP https://github.com/mc-b/microSRCP.git
 

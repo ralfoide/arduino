@@ -1,6 +1,3 @@
 [submodule "DigiFi"]
 	path = DigiFi
 	url = https://github.com/digistump/DigiFi.git
-[submodule "srcp/microSRCP"]
-	path = srcp/microSRCP
-	url = https://github.com/mc-b/microSRCP.git
