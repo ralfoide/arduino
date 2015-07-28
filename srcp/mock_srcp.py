@@ -16,13 +16,16 @@ _time = 0
 _continue = True
 
 def toggle_turnout(index):
-    print "Toggle turnout", index
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect( ("192.168.1.140", 8080) )
     try:
-        sock.sendall("@%02d\n" % (index+1))
-    finally:
-        sock.close()
+        print "Toggle turnout", index
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect( ("192.168.1.140", 8080) )
+        try:
+            sock.sendall("@%02d\n" % (index+1))
+        finally:
+            sock.close()
+    except:
+        print "Toggle turnout FAILED"
 
 
 class SessionRequestHandler(SocketServer.BaseRequestHandler):
@@ -52,15 +55,30 @@ class SessionRequestHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(header + "\n")
 
         while True:
-            c = self.request.recv(1000).strip()
-            print "[%d] >" % self.session_id, c
+            try:
+                c = self.request.recv(1000).strip()
+                print "[%d] >" % self.session_id, c
+            except socket.timeout:
+                if self.mode == MODE_INFO:
+                    # send sensor update
+                    print "[%d] < Update sensors" % self.session_id
+                    sensors = int(time.time()) & 0x0F
+                    for i in [1, 2, 3, 4]:
+                        self.reply("100 INFO 8 FB %d %d" % (i, (sensors >> (i-1)) & 0x1))
+                    continue
+                    
             
             # Handshake mode
             if c.startswith("SET PROTOCOL SRCP "):
                 self.reply("201 OK PROTOCOL SRCP")
+            
             elif c.startswith("SET CONNECTIONMODE SRCP "):
                 self.mode = c[ len("SET CONNECTIONMODE SRCP ") : ]
                 self.reply("202 OK CONNECTIONMODE")
+                
+                if self.mode == MODE_INFO:
+                    self.request.settimeout(1)
+            
             elif c == "GO":
                 global _client_id
                 _client_id += 1
@@ -70,38 +88,46 @@ class SessionRequestHandler(SocketServer.BaseRequestHandler):
                     self.reply("100 INFO 0 TIME 1 1")  # time ratio fx:fy
                     self.reply("100 INFO 0 TIME 12345 23 59 59")  # time julianDay HH MM SS
                     self.reply("100 INFO 1 POWER ON blah blah")
-                    self.reply("100 INFO 6 DESCRIPTION GA DESCRIPTION")
-                    self.reply("100 INFO 6 GA 1 0 0")    # turnout #0, port 0 value 0
-                    self.reply("100 INFO 6 GA 1 1 0")    # turnout #0, port 1 value 0
+                    self.reply("100 INFO 7 DESCRIPTION GA DESCRIPTION")
+                    self.reply("100 INFO 7 GA 1 0 0")    # turnout #1, port 0 value 0
+                    self.reply("100 INFO 7 GA 1 1 0")    # turnout #1, port 1 value 0
                     self.reply("100 INFO 8 DESCRIPTION FB DESCRIPTION")
                     self.reply("100 INFO 8 FB 1 1")      # point-detector #1, value 1
                     self.reply("100 INFO 8 FB 2 0")      # point-detector #2, value 0
                     for session in _sessions:
                         if session is not None:
                             self.reply("101 INFO 0 SESSION %d %s" % (session.session_id, session.mode))
-            elif c == "GET 6 DESCRIPTION":
-                self.reply("100 INFO 6 GA 1 0 0")    # turnout #0, port 0 value 0
-                self.reply("100 INFO 6 GA 1 1 0")    # turnout #0, port 1 value 0
-            elif c == "GET 8 DESCRIPTION":
-                self.reply("100 INFO 8 FB 1 1")      # point-detector #1, value 1
-                self.reply("100 INFO 8 FB 2 0")      # point-detector #2, value 0
-            elif c.startswith("SET 6 GA 1 ") or c.startswith("SET 7 GA 1 "):  # 6=DCC bus, 7=rocrail specific bus
+            
+            #elif c == "GET 6 DESCRIPTION":
+            #    self.reply("100 INFO 6 GA 1 0 0")    # turnout #0, port 0 value 0
+            #    self.reply("100 INFO 6 GA 1 1 0")    # turnout #0, port 1 value 0
+            #
+            #elif c == "GET 8 DESCRIPTION":
+            #    self.reply("100 INFO 8 FB 1 1")      # point-detector #1, value 1
+            #    self.reply("100 INFO 8 FB 2 0")      # point-detector #2, value 0
+            
+            elif c.startswith("SET 7 GA 1 "):  # 6=DCC bus, 7=rocrail specific bus
                 value = c[11]
                 print value
                 if value == '0' or value == '1':
                     toggle_turnout(int(value))
                 self.reply("200 OK")
+            
             elif c == "SET 1 POWER ON":
                 self.reply("200 OK")
+            
             elif c == "GET 1 POWER":
                 self.reply("100 INFO " + self.power)
+            
             elif c.startswith("INIT 1 POWER "):
                 self.power = c[ len("INIT 1 POWER ") : ]
                 self.reply("101 INFO " + self.power)
+            
             elif c.startswith("TERM 0 SESSION"):
                 # client asked to close this connection
                 self.reply("200 OK")
                 return
+            
             elif c.startswith("TERM 0 SERVER"):
                 # client asked to close this server
                 self.reply("200 OK")
@@ -110,6 +136,7 @@ class SessionRequestHandler(SocketServer.BaseRequestHandler):
                 global server
                 server.shutdown()
                 return
+            
             else:
                 self.reply("200 OK")
                 #--reply("400 What?")
