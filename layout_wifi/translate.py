@@ -40,13 +40,6 @@ class NceRequestHandler(SocketServer.BaseRequestHandler):
         self.last_sensors = 0
         print "[NCE] Start handler"
 
-    def reply(self, s):
-        global _time
-        _time += 1
-        s = "%ld %s" % (_time, s)
-        print "[SRCP %d] <" % self.session_id, s
-        self.request.sendall(s + "\n")
-
     def handle(self):
         buf = self.buf
         conn = self.request

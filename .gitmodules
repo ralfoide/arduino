@@ -1,3 +1,9 @@
 [submodule "DigiFi"]
 	path = DigiFi
 	url = https://github.com/digistump/DigiFi.git
+#[submodule "layout_wifi/translate_go/src/golang.org/x/crypto"]
+#	path = layout_wifi/translate_go/src/golang.org/x/crypto
+#	url = https://go.googlesource.com/crypto
+[submodule "layout_wifi/translate_go/src/github.com/stretchr/testify"]
+	path = layout_wifi/translate_go/src/github.com/stretchr/testify
+	url = https://github.com/stretchr/testify.git

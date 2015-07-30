@@ -3,6 +3,8 @@ set -e
 set -x
 cd $(dirname "$0")
 
+# To remove a module: git submodule deinit $ROOT/$DIR
+
 function checkout() {
     DIR=$1
     URL=$2
@@ -21,3 +23,6 @@ checkout DigiFi https://github.com/digistump/DigiFi.git
 
 # checkout layout_wifi/microSRCP https://github.com/mc-b/microSRCP.git
 
+# checkout layout_wifi/translate_go/src/golang.org/x/crypto https://go.googlesource.com/crypto
+
+checkout layout_wifi/translate_go/src/github.com/stretchr/testify https://github.com/stretchr/testify.git
