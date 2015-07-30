@@ -1,4 +1,4 @@
-package main
+package translate
 
 import (
     "bufio"
@@ -60,7 +60,7 @@ func TerminalLoop() {
     fmt.Println("Exiting")
 }
 
-func main() {
+func Main() {
     SetupSignal()
     NceServer()
     TerminalLoop()
