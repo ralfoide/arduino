@@ -25,4 +25,4 @@ checkout DigiFi https://github.com/digistump/DigiFi.git
 
 # checkout layout_wifi/translate_go/src/golang.org/x/crypto https://go.googlesource.com/crypto
 
-checkout layout_wifi/translate_go/src/github.com/stretchr/testify https://github.com/stretchr/testify.git
+checkout layout_wifi/translate/src/github.com/stretchr/testify https://github.com/stretchr/testify.git
