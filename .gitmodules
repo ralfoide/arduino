@@ -1,3 +1,6 @@
 [submodule "DigiFi"]
 	path = DigiFi
 	url = https://github.com/digistump/DigiFi.git
+[submodule "layout_wifi/translate/src/github.com/stretchr/testify"]
+	path = layout_wifi/translate/src/github.com/stretchr/testify
+	url = https://github.com/stretchr/testify.git

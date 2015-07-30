@@ -66,22 +66,23 @@ func (c *MockConn) SetWriteDeadline(t time.Time) error {
 // ---
 
 func TestMockConnRead(t *testing.T) {
+    assert := assert.New(t)
     c := newMockConn( []byte{ 1, 2, 3, 4, 5 } )
 
     buf2 := make([]byte, 2)
     buf3 := make([]byte, 3)
     
     n, err := c.Read(buf2)
-    assert.Equal(t, 2, n)
+    assert.Equal(2, n)
     assert.Nil(err)
     
     n, err = c.Read(buf3)
-    assert.Equal(t, 3, n)
+    assert.Equal(3, n)
     assert.Nil(err)
     
     n, err = c.Read(buf2)
-    assert.Equal(t, 3, n)
-    assert.Nil(err)
+    assert.Equal(0, n)
+    assert.NotNil(t, err)
 }
 
 func TestHandleNceConn(t *testing.T) {

@@ -3,7 +3,12 @@ set -e
 set -x
 cd $(dirname "$0")
 
-# To remove a module: git submodule deinit $ROOT/$DIR
+# To remove a module: 
+# 1- git submodule deinit $ROOT/$DIR ==> check .gitmodules, should have been removed from it
+# 2- rm -rfv .git/modules/<path>     ==> just clearing internal caches
+# 3- git rm --cached <path> (no trailing slash) ==> if not gives "already in index" when adding it back
+#
+# Also this conflicts with a git mv of the parent directory if not at the git root.
 
 function checkout() {
     DIR=$1
