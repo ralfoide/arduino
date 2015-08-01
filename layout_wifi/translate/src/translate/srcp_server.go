@@ -2,8 +2,10 @@ package translate
 
 import (
     "fmt"
-    //"io"
     "net"
+    "strconv"
+    "strings"
+    "sync"
 )
 
 const SRCP_PORT           = ":4303"
@@ -11,13 +13,77 @@ const SRCP_MODE_HANDSHAKE = "HANDSHAKE"
 const SRCP_MODE_INFO      = "INFO"
 const SRCP_MODE_COMMAND   = "COMMAND"
 
+//-----
+
 type SrcpSession struct {
-    Id   int
-    Mode string
-    Time int
-    Conn net.Conn
+    Id       int
+    Mode     string
+    Time     int
+    Conn     net.Conn
+    Sessions *SrcpSessions
 }
 
+func (s *SrcpSession) Reply(str string) {
+    s.Time += 1
+    str = fmt.Sprintf("%d %s\n", s.Time, str)
+    fmt.Printf("[SRCP %d] < %s", s.Id, str)
+    s.Conn.Write( []byte(str) )
+}
+
+//-----
+
+type SrcpSessions struct {
+    mutex    sync.Mutex
+    sessions map[int] *SrcpSession
+}
+
+func NewSrcpSessions() *SrcpSessions {
+    s := &SrcpSessions{}
+    s.sessions = make(map[int] *SrcpSession)
+    return s
+}
+
+func (s *SrcpSessions) Add(session *SrcpSession) {
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+
+    s.sessions[session.Id] = session
+}
+
+func (s *SrcpSessions) Remove(session *SrcpSession) {
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+
+    delete(s.sessions, session.Id)
+}
+
+func (s *SrcpSessions) Iter(f func(*SrcpSession)) {
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+
+    for _, v := range s.sessions {
+        if v != nil {
+            f(v)
+        }
+    }
+}
+
+func (s *SrcpSessions) String() string {
+    str := ""
+
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+
+    for k, v := range s.sessions {
+        if v != nil {
+            str += strconv.Itoa(k) + " "
+        }
+    }
+    
+    return strings.TrimSpace(str)
+}
+
+//-----
 
 func SrcpServer(m *Model) {
     fmt.Println("Start SRCP server")
@@ -30,7 +96,7 @@ func SrcpServer(m *Model) {
     go func(listener net.Listener) {
         defer listener.Close()
 
-        sessions := map[int] *SrcpSession {}
+        sessions := NewSrcpSessions()
         session_id := 0
         
         for !m.IsQuitting() {
@@ -40,25 +106,16 @@ func SrcpServer(m *Model) {
             }
             session_id += 1
             go func(id int, conn net.Conn) {
-                session := &SrcpSession{id, SRCP_MODE_HANDSHAKE, 0, conn}
-                sessions[id] = session
-                defer delete(sessions, id)
-                HandleSrcpConn(m, session, sessions)
+                session := &SrcpSession{id, SRCP_MODE_HANDSHAKE, 0, conn, sessions}
+                sessions.Add(session)
+                defer sessions.Remove(session)
+                HandleSrcpConn(m, session)
             }(session_id, conn)
         }
     }(listener)
 }
 
-func (s *SrcpSession) Reply(str string) {
-    s.Time += 1
-    str = fmt.Sprintf("%d %s\n", s.Time, str)
-    fmt.Printf("[SRCP %d] < %s", s.Id, str)
-    s.Conn.Write( []byte(str) )
-
-}
-
-func HandleSrcpConn(m *Model,
-                    s *SrcpSession, sessions map[int] *SrcpSession) {
+func HandleSrcpConn(m *Model, s *SrcpSession) {
     fmt.Println("[SRCP] New session/connection")
 
     conn := s.Conn
