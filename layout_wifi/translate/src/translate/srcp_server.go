@@ -2,42 +2,69 @@ package translate
 
 import (
     "fmt"
+    //"io"
     "net"
 )
 
-const NCE_PORT           = ":8080"
-const OP_GET_VERSION     = 0xAA
-const OP_GET_AIU_SENSORS = 0x8A
-const OP_READ_TURNOUTS   = 0x8F
-const OP_TRIGGER_ACC     = 0xAD
-const OP_READ_RAM        = 0x9D
+const SRCP_PORT           = ":4303"
+const SRCP_MODE_HANDSHAKE = "HANDSHAKE"
+const SRCP_MODE_INFO      = "INFO"
+const SRCP_MODE_COMMAND   = "COMMAND"
 
-func NceServer(m *Model) {
-    fmt.Println("Start NCE server")
+type SrcpSession struct {
+    Id   int
+    Mode string
+    Time int
+    Conn net.Conn
+}
 
-    listener, err := net.Listen("tcp", NCE_PORT)
+
+func SrcpServer(m *Model) {
+    fmt.Println("Start SRCP server")
+
+    listener, err := net.Listen("tcp", SRCP_PORT)
     if err != nil {
         panic(err)
     }
     
     go func(listener net.Listener) {
         defer listener.Close()
+
+        sessions := map[int] *SrcpSession {}
+        session_id := 0
         
         for !m.IsQuitting() {
             conn, err := listener.Accept()
             if err != nil {
                 panic(err)
             }
-            go HandleNceConn(m, conn)
+            session_id += 1
+            go func(id int, conn net.Conn) {
+                session := &SrcpSession{id, SRCP_MODE_HANDSHAKE, 0, conn}
+                sessions[id] = session
+                defer delete(sessions, id)
+                HandleSrcpConn(m, session, sessions)
+            }(session_id, conn)
         }
     }(listener)
 }
 
-func HandleNceConn(m *Model, conn net.Conn) {
-    fmt.Println("[NCE] New connection")
+func (s *SrcpSession) Reply(str string) {
+    s.Time += 1
+    str = fmt.Sprintf("%d %s\n", s.Time, str)
+    fmt.Printf("[SRCP %d] < %s", s.Id, str)
+    s.Conn.Write( []byte(str) )
 
+}
+
+func HandleSrcpConn(m *Model,
+                    s *SrcpSession, sessions map[int] *SrcpSession) {
+    fmt.Println("[SRCP] New session/connection")
+
+    conn := s.Conn
     defer conn.Close()
 
+/*
     sensors := make([]uint16, MAX_AIU)
     buf := make([]byte, 16)
 
@@ -150,12 +177,13 @@ func HandleNceConn(m *Model, conn net.Conn) {
 
         if err != nil {
             if op, ok := err.(*net.OpError); ok {
-                fmt.Println("[NCE] Connection error:", op.Op)
+                fmt.Println("[SRCP] Connection error:", op.Op)
                 break loopRead
             } else {
                 panic(err)
             }
         }
     }
-    fmt.Println("[NCE] Connection closed")
+*/
+    fmt.Println("[SRCP] Connection closed")
 }

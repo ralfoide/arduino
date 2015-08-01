@@ -49,6 +49,7 @@ func Main() {
     model := NewModel()
     SetupSignal(model)
     NceServer(model)
+    SrcpServer(model)
     TerminalLoop(model)
 }
 
