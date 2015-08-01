@@ -6,11 +6,11 @@ import (
 )
 
 const NCE_PORT           = ":8080"
-const OP_GET_VERSION     = 0xAA
-const OP_GET_AIU_SENSORS = 0x8A
-const OP_READ_TURNOUTS   = 0x8F
-const OP_TRIGGER_ACC     = 0xAD
-const OP_READ_RAM        = 0x9D
+const NCE_GET_VERSION     = 0xAA
+const NCE_GET_AIU_SENSORS = 0x8A
+const NCE_READ_TURNOUTS   = 0x8F
+const NCE_TRIGGER_ACC     = 0xAD
+const NCE_READ_RAM        = 0x9D
 
 func NceServer(m *Model) {
     fmt.Println("Start NCE server")
@@ -38,7 +38,7 @@ func HandleNceConn(m *Model, conn net.Conn) {
 
     defer conn.Close()
 
-    sensors := make([]uint16, MAX_AIU)
+    sensors := make([]uint16, MAX_AIUS)
     buf := make([]byte, 16)
 
     loopRead: for !m.IsQuitting() {
@@ -51,7 +51,7 @@ func HandleNceConn(m *Model, conn net.Conn) {
             fmt.Printf("[NCE] Command: 0x%02x\n", cmd)
             
             switch cmd {
-            case OP_GET_VERSION:
+            case NCE_GET_VERSION:
                 // Op: Get version.
                 // Args: None
                 // Reply: version 6.3.8
@@ -61,19 +61,19 @@ func HandleNceConn(m *Model, conn net.Conn) {
                 buf[2] = 8
                 n, err = conn.Write(buf[0:3])
             
-            case OP_GET_AIU_SENSORS:            
+            case NCE_GET_AIU_SENSORS:            
                 // Op: AIU polling
                 // Args: 1 byte (AIU number)
                 // Reply: returns 4 bytes (sensor BE, mask BE, 14 bits max)
                 n, err := conn.Read(buf[0:1])
                 aiu := int(buf[0])
-                if n == 1 && err == nil && aiu >= 0 && aiu < MAX_AIU {
+                if n == 1 && err == nil && aiu >= 1 && aiu <= MAX_AIUS {
                     s := m.GetSensors(aiu)
                     buf[0] = byte((s >> 8) & 0x0FF)
                     buf[1] = byte( s       & 0x0FF)
 
-                    mask := s ^ sensors[aiu]
-                    sensors[aiu] = s
+                    mask := s ^ sensors[aiu - 1]
+                    sensors[aiu - 1] = s
 
                     buf[2] = byte((mask >> 8) & 0x0FF)
                     buf[3] = byte( mask       & 0x0FF)
@@ -86,14 +86,14 @@ func HandleNceConn(m *Model, conn net.Conn) {
                     fmt.Printf("[NCE] > Invalid Poll AIU [%d], n=%d, err=%v\n", aiu, n, err)
                 }
                 
-            case OP_TRIGGER_ACC:
+            case NCE_TRIGGER_ACC:
                 // Op: Trigger accessories (i.e. turnouts)
                 // Args: 3 bytes (2 for address big endian, 1 op: 3=normal/on, 4=reverse/off)
                 // Reply: 1 byte "!"
                 n, err := conn.Read(buf[0:3])
                 addr := (int(buf[0]) << 8) + int(buf[1])
                 op   := int(buf[2])
-                if n == 3 && err == nil && addr >= 0 && (op == 3 || op == 4) {
+                if n == 3 && err == nil && addr >= 1 && addr <= MAX_TURNOUTS && (op == 3 || op == 4) {
                     fmt.Printf("[NCE] > Trigger Acc [%04x], op=%d\n", addr, op)
 
                     m.SendTurnoutOp( &TurnoutOp{addr, op == 3} )
@@ -104,7 +104,7 @@ func HandleNceConn(m *Model, conn net.Conn) {
                     fmt.Printf("[NCE] > Invalid Trigger Acc [%04x], op=%d, n=%d, err=%v\n", addr, op, n, err)
                 }
                 
-            case OP_READ_RAM:
+            case NCE_READ_RAM:
                 // Op: Read one byte from RAM
                 // Args: 2 bytes (address, big endian)
                 // Reply: 1 byte
@@ -119,7 +119,7 @@ func HandleNceConn(m *Model, conn net.Conn) {
                     fmt.Printf("[NCE] > Invalid Read RAM [%04x], n=%d, err=%v\n", addr, n, err)
                 }
 
-            case OP_READ_TURNOUTS:
+            case NCE_READ_TURNOUTS:
                 // Op: Read 16-bytes from the address specified
                 // Args: 2 bytes (address, big endian)
                 // Reply: 16 bytes which are turnout feedback state,

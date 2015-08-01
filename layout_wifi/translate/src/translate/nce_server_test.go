@@ -124,7 +124,7 @@ func TestMockConn_Close(t *testing.T) {
 
 func TestHandleNceConn_Version(t *testing.T) {
     m := NewModel()
-    c := newMockConn( []byte{ OP_GET_VERSION } )
+    c := newMockConn( []byte{ NCE_GET_VERSION } )
     HandleNceConn(m, c)
     // version 6.3.8
     assert.Equal(t, []byte{ 6, 3, 8 }, c._write)
@@ -134,9 +134,9 @@ func TestHandleNceConn_GetSensors(t *testing.T) {
     m := NewModel()
     m.SetSensors(2, 0x1234)
 
-    c := newMockConn( []byte{ OP_GET_AIU_SENSORS, 1,  
-                              OP_GET_AIU_SENSORS, 2,  
-                              OP_GET_AIU_SENSORS, 2 } )
+    c := newMockConn( []byte{ NCE_GET_AIU_SENSORS, 1,  
+                              NCE_GET_AIU_SENSORS, 2,  
+                              NCE_GET_AIU_SENSORS, 2 } )
     HandleNceConn(m, c)
     assert.Equal(t, []byte{ 0x00, 0x00, 0x00, 0x00,
                             0x12, 0x34, 0x12, 0x34,
@@ -147,18 +147,18 @@ func TestHandleNceConn_TriggerTurnout(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    c := newMockConn( []byte{ OP_TRIGGER_ACC, 0x01, 0x23, 3, 
-                              OP_TRIGGER_ACC, 0x01, 0x23, 4 } )
+    c := newMockConn( []byte{ NCE_TRIGGER_ACC, 0x00, 0x08, 3, 
+                              NCE_TRIGGER_ACC, 0x00, 0x08, 4 } )
     HandleNceConn(m, c)
     assert.Equal([]byte{ '!', '!' }, c._write)
 
     op, ok := m.GetTurnoutOp()
     assert.Equal(true, ok)
-    assert.Equal(TurnoutOp{0x123, true}, *op)
+    assert.Equal(TurnoutOp{0x08, true}, *op)
 
     op, ok = m.GetTurnoutOp()
     assert.Equal(true, ok)
-    assert.Equal(TurnoutOp{0x123, false}, *op)
+    assert.Equal(TurnoutOp{0x08, false}, *op)
     
     op, ok = m.GetTurnoutOp()
     assert.Equal(false, ok)
@@ -169,7 +169,7 @@ func TestHandleNceConn_ReadRAM(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    c := newMockConn( []byte{ OP_READ_RAM, 0x01, 0x23 } )
+    c := newMockConn( []byte{ NCE_READ_RAM, 0x01, 0x23 } )
     HandleNceConn(m, c)
     assert.Equal([]byte{ 0 }, c._write)
 }
@@ -178,20 +178,20 @@ func TestHandleNceConn_ReadTurnouts(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    c := newMockConn( []byte{ OP_READ_TURNOUTS, 0x01, 0x23 } )
+    c := newMockConn( []byte{ NCE_READ_TURNOUTS, 0x01, 0x23 } )
     HandleNceConn(m, c)
     assert.Equal([]byte{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, }, 
                  c._write)
 
-    m.SetTurnoutState(0, true)
-    m.SetTurnoutState(1, false)
-    m.SetTurnoutState(8, true)
-    m.SetTurnoutState(9, false)
+    m.SetTurnoutState(1, true)
+    m.SetTurnoutState(2, false)
+    m.SetTurnoutState(4, true)
+    m.SetTurnoutState(5, false)
                  
-    c.reset( []byte{ OP_READ_TURNOUTS, 0x01, 0x23 } )
+    c.reset( []byte{ NCE_READ_TURNOUTS, 0x01, 0x23 } )
     HandleNceConn(m, c)
-    assert.Equal([]byte{ 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    assert.Equal([]byte{ 0x22, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, }, 
                  c._write)
 }
