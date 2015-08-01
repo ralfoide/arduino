@@ -6,33 +6,18 @@ import (
     "io"
     "os"
     "os/signal"
-    //"time"
     "syscall"
-    "sync/atomic"
 )
 
-const CONTINUE = 0
-const QUITTING = 1
-
-var Quitting int32 = CONTINUE
-
-func SetQuitting() {
-    atomic.StoreInt32(&Quitting, QUITTING)
-}
-
-func IsQuitting() bool {
-    return atomic.LoadInt32(&Quitting) == QUITTING
-}
-
-func SetupSignal() {
+func SetupSignal(m *Model) {
     c := make(chan os.Signal, 1)
     signal.Notify(c, os.Interrupt)  // Ctrl-C
     signal.Notify(c, syscall.SIGTERM) // kill -9
-    go func() {
+    go func(m *Model) {
         <-c
         fmt.Println("Caught Ctrl-C")
-        SetQuitting()
-    }()
+        m.SetQuitting()
+    }(m)
 }
 
 func ReadLine(in io.ReadWriter) string {
@@ -45,14 +30,14 @@ func ReadLine(in io.ReadWriter) string {
     return string(line)
 }
 
-func TerminalLoop() {
+func TerminalLoop(m *Model) {
     fmt.Println("Enter terminal")
 
-    for !IsQuitting() {
+    for !m.IsQuitting() {
         str := ReadLine(os.Stdin)
 
         if str == "quit" || str == "q" {
-            SetQuitting()
+            m.SetQuitting()
         } else {
             fmt.Println("Unknown command. Use quit or q.")
         }
@@ -61,8 +46,9 @@ func TerminalLoop() {
 }
 
 func Main() {
-    SetupSignal()
-    NceServer()
-    TerminalLoop()
+    model := NewModel()
+    SetupSignal(model)
+    NceServer(model)
+    TerminalLoop(model)
 }
 

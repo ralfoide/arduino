@@ -1,13 +1,12 @@
 package translate
 
-import "testing"
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+)
 
-func TestQuitting(t *testing.T) {
-    if IsQuitting() {
-        t.Errorf("Expected Quitting=CONTINUE, Actual: %d\n", Quitting)
-    }
-    SetQuitting()
-    if !IsQuitting() {
-        t.Errorf("Expected Quitting=QUITTING, Actual: %d\n", Quitting)
-    }
+func TestNewModel(t *testing.T) {
+    m := NewModel()
+    assert.NotNil(t, m)
+    assert.Equal(t, false, m.IsQuitting())
 }

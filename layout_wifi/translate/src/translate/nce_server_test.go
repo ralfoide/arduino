@@ -10,6 +10,7 @@ import (
 )
 
 // ----
+// Type MockConn implements the net.Conn interface
 
 type MockConn struct {
     _read   []byte
@@ -19,11 +20,18 @@ type MockConn struct {
 
 func newMockConn(_read []byte) *MockConn {
     c := &MockConn{}
-    c._read = _read
+    c.reset(_read)
     return c
 }
 
+func (c *MockConn) reset(_read []byte) {
+    c._read = _read
+    c._write = nil
+    c._closed = false
+}
+
 func (c *MockConn) Close() error {
+    c._closed = true
     return nil
 }
 
@@ -40,6 +48,12 @@ func (c *MockConn) Read(b []byte) (n int, err error) {
 }
 
 func (c *MockConn) Write(b []byte) (n int, err error) {
+    if c._write == nil {
+        c._write = make([]byte, 0)
+    }
+
+    // Note: "b..." means to append a slice to a slice, otherwise it appends a single byte
+    c._write = append(c._write, b...)
     return 0, nil
 }
 
@@ -65,7 +79,7 @@ func (c *MockConn) SetWriteDeadline(t time.Time) error {
 
 // ---
 
-func TestMockConnRead(t *testing.T) {
+func TestMockConn_Read(t *testing.T) {
     assert := assert.New(t)
     c := newMockConn( []byte{ 1, 2, 3, 4, 5 } )
 
@@ -85,7 +99,99 @@ func TestMockConnRead(t *testing.T) {
     assert.NotNil(t, err)
 }
 
-func TestHandleNceConn(t *testing.T) {
-    c := newMockConn( []byte{ 0xAA } )
-    HandleNceConn(c)
+func TestMockConn_Write(t *testing.T) {
+    assert := assert.New(t)
+    c := newMockConn( []byte{ 1, 2, 3, 4, 5 } )
+    assert.Nil(c._write)
+
+    c.Write( []byte{ 6, 7, 8 } )
+    assert.Equal([]byte{ 6, 7, 8 }, c._write)
+
+    c.Write( []byte{ 9 } )
+    assert.Equal([]byte{ 6, 7, 8, 9 }, c._write)
+}
+
+func TestMockConn_Close(t *testing.T) {
+    assert := assert.New(t)
+    c := newMockConn( []byte{ 1, 2, 3, 4, 5 } )
+    assert.Equal(false, c._closed)
+
+    c.Close()
+    assert.Equal(true, c._closed)
+}
+
+// ---
+
+func TestHandleNceConn_Version(t *testing.T) {
+    m := NewModel()
+    c := newMockConn( []byte{ OP_GET_VERSION } )
+    HandleNceConn(m, c)
+    // version 6.3.8
+    assert.Equal(t, []byte{ 6, 3, 8 }, c._write)
+}
+
+func TestHandleNceConn_GetSensors(t *testing.T) {
+    m := NewModel()
+    m.SetSensors(2, 0x1234)
+
+    c := newMockConn( []byte{ OP_GET_AIU_SENSORS, 1,  
+                              OP_GET_AIU_SENSORS, 2,  
+                              OP_GET_AIU_SENSORS, 2 } )
+    HandleNceConn(m, c)
+    assert.Equal(t, []byte{ 0x00, 0x00, 0x00, 0x00,
+                            0x12, 0x34, 0x12, 0x34,
+                            0x12, 0x34, 0x00, 0x00 }, c._write)
+}
+
+func TestHandleNceConn_TriggerTurnout(t *testing.T) {
+    assert := assert.New(t)
+    m := NewModel()
+
+    c := newMockConn( []byte{ OP_TRIGGER_ACC, 0x01, 0x23, 3, 
+                              OP_TRIGGER_ACC, 0x01, 0x23, 4 } )
+    HandleNceConn(m, c)
+    assert.Equal([]byte{ '!', '!' }, c._write)
+
+    op, ok := m.GetTurnoutOp()
+    assert.Equal(true, ok)
+    assert.Equal(TurnoutOp{0x123, true}, *op)
+
+    op, ok = m.GetTurnoutOp()
+    assert.Equal(true, ok)
+    assert.Equal(TurnoutOp{0x123, false}, *op)
+    
+    op, ok = m.GetTurnoutOp()
+    assert.Equal(false, ok)
+    assert.Nil(op)
+}
+
+func TestHandleNceConn_ReadRAM(t *testing.T) {
+    assert := assert.New(t)
+    m := NewModel()
+
+    c := newMockConn( []byte{ OP_READ_RAM, 0x01, 0x23 } )
+    HandleNceConn(m, c)
+    assert.Equal([]byte{ 0 }, c._write)
+}
+
+func TestHandleNceConn_ReadTurnouts(t *testing.T) {
+    assert := assert.New(t)
+    m := NewModel()
+
+    c := newMockConn( []byte{ OP_READ_TURNOUTS, 0x01, 0x23 } )
+    HandleNceConn(m, c)
+    assert.Equal([]byte{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, }, 
+                 c._write)
+
+    m.SetTurnoutState(0, true)
+    m.SetTurnoutState(1, false)
+    m.SetTurnoutState(8, true)
+    m.SetTurnoutState(9, false)
+                 
+    c.reset( []byte{ OP_READ_TURNOUTS, 0x01, 0x23 } )
+    HandleNceConn(m, c)
+    assert.Equal([]byte{ 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, }, 
+                 c._write)
 }
