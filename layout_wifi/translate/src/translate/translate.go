@@ -7,13 +7,15 @@ import (
     "io"
     "os"
     "os/signal"
+    "strings"
+    "strconv"
     "syscall"
 )
 
-var DX_SERV bool
+var LW_SERV bool
 
 func init() {
-    flag.BoolVar(&DX_SERV, "simulate", false, "Simulate DigiX server")
+    flag.BoolVar(&LW_SERV, "simulate", false, "Simulate LayoutWifi server")
 }
 
 // -----
@@ -39,7 +41,7 @@ func ReadLine(in io.ReadWriter) string {
     return string(line)
 }
 
-func TerminalLoop(m *Model) {
+func TerminalLoop(m *Model, sensors_chan chan<- LwSensor) {
     fmt.Println("Enter terminal")
 
     for !m.IsQuitting() {
@@ -48,8 +50,18 @@ func TerminalLoop(m *Model) {
         switch {
         case str == "quit" || str == "q":
             m.SetQuitting()
-        case DX_SERV && str == "foo":
-            fmt.Println("TBD")
+
+        case LW_SERV && strings.HasPrefix(str, "on"):
+            fields := strings.Fields(str)
+            if index, err :=  strconv.Atoi(fields[1]); err == nil {
+                sensors_chan <- LwSensor { uint(index), true }
+            }
+        case LW_SERV && strings.HasPrefix(str, "off"):
+            fields := strings.Fields(str)
+            if index, err :=  strconv.Atoi(fields[1]); err == nil {
+                sensors_chan <- LwSensor { uint(index), false }
+            }
+        
         default:
             fmt.Println("Unknown command. Use quit or q.")
         }
@@ -62,9 +74,12 @@ func Main() {
     SetupSignal(model)
     NceServer(model)
     SrcpServer(model)
-    if (DX_SERV) {
+    
+    var sensors_chan chan LwSensor
+    if (LW_SERV) {
         // Simulate DigiX server
+        sensors_chan = LwServer(model)
     }
-    TerminalLoop(model)
+    TerminalLoop(model, sensors_chan)
 }
 

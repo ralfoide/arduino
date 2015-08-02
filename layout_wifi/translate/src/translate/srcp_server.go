@@ -133,27 +133,6 @@ func SrcpServer(m *Model) {
     }(listener)
 }
 
-func SendSrcpSensorUpdate(m *Model, s *SrcpSession) {
-    // send periodic INFO sensor updates if they have changed
-    sensor := 0
-    for aiu := 1; aiu <= MAX_AIUS; aiu++ {
-        state := m.GetSensors(aiu)
-        previous := s.sensors[aiu - 1]
-        if state != previous {
-            s.sensors[aiu - 1] = state
-            for i := 1; i <= SENSORS_PER_AIU; i++ {
-                t := state & 1
-                if t != (previous & 1) {
-                    s.Reply(fmt.Sprintf("100 INFO 8 FB %d %d", sensor + i, t))
-                }
-                state    >>= 1
-                previous >>= 1
-            }
-        }
-        sensor += SENSORS_PER_AIU
-    }
-}
-
 func HandleSrcpConn(m *Model, s *SrcpSession) {
     fmt.Println("[SRCP] New session/connection")
 
@@ -261,4 +240,25 @@ func HandleSrcpLine(m *Model, s *SrcpSession, line string) error {
     }
 
     return nil
+}
+
+func SendSrcpSensorUpdate(m *Model, s *SrcpSession) {
+    // send periodic INFO sensor updates if they have changed
+    sensor := 0
+    for aiu := 1; aiu <= MAX_AIUS; aiu++ {
+        state := m.GetSensors(aiu)
+        previous := s.sensors[aiu - 1]
+        if state != previous {
+            s.sensors[aiu - 1] = state
+            for i := 1; i <= SENSORS_PER_AIU; i++ {
+                t := state & 1
+                if t != (previous & 1) {
+                    s.Reply(fmt.Sprintf("100 INFO 8 FB %d %d", sensor + i, t))
+                }
+                state    >>= 1
+                previous >>= 1
+            }
+        }
+        sensor += SENSORS_PER_AIU
+    }
 }

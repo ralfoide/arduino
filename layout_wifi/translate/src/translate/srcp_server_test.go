@@ -272,18 +272,4 @@ func TestSendSrcpSensorUpdate(t *testing.T) {
         []byte("18 100 INFO 8 FB 1 0\n" +
                "19 100 INFO 8 FB 56 0\n"), 
         c._write)
-        
-    /*
-    op, ok := m.GetTurnoutOp()
-    assert.Equal(true, ok)
-    assert.Equal(TurnoutOp{0x08, true}, *op)
-
-    op, ok = m.GetTurnoutOp()
-    assert.Equal(true, ok)
-    assert.Equal(TurnoutOp{0x08, false}, *op)
-    
-    op, ok = m.GetTurnoutOp()
-    assert.Equal(false, ok)
-    assert.Nil(op)
-*/
 }
