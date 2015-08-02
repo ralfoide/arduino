@@ -70,6 +70,7 @@ func TerminalLoop(m *Model, sensors_chan chan<- LwSensor) {
 }
 
 func Main() {
+    flag.Parse()
     model := NewModel()
     SetupSignal(model)
     NceServer(model)
@@ -80,6 +81,8 @@ func Main() {
         // Simulate DigiX server
         sensors_chan = LwServer(model)
     }
+
+    LwClient(model)
     TerminalLoop(model, sensors_chan)
 }
 

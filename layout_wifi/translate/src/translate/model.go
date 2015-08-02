@@ -4,6 +4,7 @@ import (
     "fmt"
     "sync"
     "sync/atomic"
+    "time"
 )
 
 const CONTINUE = 0
@@ -13,6 +14,8 @@ const QUITTING = 1
 // Expect to have a dozen block detection sensors, so
 // let's give 1 extra for future expansion.
 const MAX_AIUS        = 4
+// The first AIU that contains LayoutWifi sensors is internally 3
+const AIU_SENSORS_BASE= 3
 const SENSORS_PER_AIU = 14
 const SENSORS_MASK    = (1 << SENSORS_PER_AIU) - 1
 const MAX_SENSORS     = SENSORS_PER_AIU * MAX_AIUS
@@ -128,7 +131,7 @@ func (m *Model) SetSensors(aiu int, sensors uint16) {
         panic(fmt.Errorf("Invalid AIU number %d [1..%d]", aiu, MAX_AIUS))
     }
 
-    m.sensors[aiu - 1] = sensors
+    m.sensors[aiu - 1] = sensors & SENSORS_MASK
 }
 
 func (m *Model) SendTurnoutOp(op *TurnoutOp) {
@@ -139,11 +142,12 @@ func (m *Model) SendTurnoutOp(op *TurnoutOp) {
     m.turnoutOps <- op
 }
 
-func (m *Model) GetTurnoutOp() (op *TurnoutOp, ok bool) {
+// Blocks for the duration and returns the next turnout op available or nil
+func (m *Model) GetTurnoutOp(d time.Duration) (op *TurnoutOp, ok bool) {
     select {
     case op = <- m.turnoutOps:
         ok = true
-    default:
+    case <- time.After(d):
         op = nil
         ok = false
     }

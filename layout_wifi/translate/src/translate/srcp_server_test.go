@@ -3,6 +3,7 @@ package translate
 import (
     "fmt"
     "testing"
+    "time"
     "github.com/stretchr/testify/assert"
 )
 
@@ -221,15 +222,15 @@ func TestHandleSrcpLine_TriggerTurnout(t *testing.T) {
                "13 200 OK\n"), 
         c._write)
 
-    op, ok := m.GetTurnoutOp()
+    op, ok := m.GetTurnoutOp(time.Millisecond)
     assert.Equal(true, ok)
     assert.Equal(TurnoutOp{0x08, true}, *op)
 
-    op, ok = m.GetTurnoutOp()
+    op, ok = m.GetTurnoutOp(time.Millisecond)
     assert.Equal(true, ok)
     assert.Equal(TurnoutOp{0x08, false}, *op)
     
-    op, ok = m.GetTurnoutOp()
+    op, ok = m.GetTurnoutOp(time.Millisecond)
     assert.Equal(false, ok)
     assert.Nil(op)
 }

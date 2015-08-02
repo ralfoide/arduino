@@ -2,6 +2,7 @@ package translate
 
 import (
     "testing"
+    "time"
     "github.com/stretchr/testify/assert"
 )
 
@@ -44,13 +45,13 @@ func TestTurnoutOp(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    op, ok := m.GetTurnoutOp()
+    op, ok := m.GetTurnoutOp(time.Millisecond)
     assert.Equal(false, ok)
     assert.Nil(op)
 
     m.SendTurnoutOp( &TurnoutOp{6, true} )
     
-    op, ok = m.GetTurnoutOp()
+    op, ok = m.GetTurnoutOp(time.Millisecond)
     assert.Equal(true, ok)
     assert.Equal(TurnoutOp{6, true}, *op)    
 }

@@ -152,15 +152,15 @@ func TestHandleNceConn_TriggerTurnout(t *testing.T) {
     HandleNceConn(m, c)
     assert.Equal([]byte{ '!', '!' }, c._write)
 
-    op, ok := m.GetTurnoutOp()
+    op, ok := m.GetTurnoutOp(time.Millisecond)
     assert.Equal(true, ok)
     assert.Equal(TurnoutOp{0x08, true}, *op)
 
-    op, ok = m.GetTurnoutOp()
+    op, ok = m.GetTurnoutOp(time.Millisecond)
     assert.Equal(true, ok)
     assert.Equal(TurnoutOp{0x08, false}, *op)
     
-    op, ok = m.GetTurnoutOp()
+    op, ok = m.GetTurnoutOp(time.Millisecond)
     assert.Equal(false, ok)
     assert.Nil(op)
 }

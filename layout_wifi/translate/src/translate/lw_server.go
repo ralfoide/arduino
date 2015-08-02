@@ -143,7 +143,7 @@ func HandleLwServLine(s *LwServ, line string) string {
         return fmt.Sprintf("@IT%02dS%02d\n", LW_TURNOUT_N, LW_AIU_N);
     }
     
-    if strings.HasPrefix(line, "@T") && len(line) == 5 {
+    if len(line) == 5 && strings.HasPrefix(line, "@T") {
         // Turnout command: @T<00><N|R>\n
         buf := line[2:5]
         turnout := (int(buf[0] - '0') << 8) + int(buf[1] - '0')
