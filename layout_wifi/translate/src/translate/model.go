@@ -9,12 +9,18 @@ import (
 const CONTINUE = 0
 const QUITTING = 1
 
-const MAX_AIUS  = 8
+// The 2 first AIUs are to simulate turnout feedback.
+// Expect to have a dozen block detection sensors, so
+// let's give 1 extra for future expansion.
+const MAX_AIUS        = 4
 const SENSORS_PER_AIU = 14
-const MAX_SENSORS = SENSORS_PER_AIU * MAX_AIUS
+const SENSORS_MASK    = (1 << SENSORS_PER_AIU) - 1
+const MAX_SENSORS     = SENSORS_PER_AIU * MAX_AIUS
 
-// Expect to handle 8 turnouts, using 32 for future expansion.
-const MAX_TURNOUTS = 32
+// Expect to handle 8 turnouts, using 28 for future expansion.
+// By convention AIU 1 and 2 will mirror the turnout feedback states.
+// Actual block detection sensors will start at AIU 3
+const MAX_TURNOUTS = 2 * SENSORS_PER_AIU
 
 type TurnoutOp struct {
     // Turnout Addresses are 1-based: 1..MAX_TURNOUTS
@@ -59,6 +65,23 @@ func (m *Model) IsQuitting() bool {
     return atomic.LoadInt32(&m.quitting) == QUITTING
 }
 
+// Get the 1-bit sensor value for the given sensor.
+// Sensors numbers are 1-based: 1..MAX_SENSORS
+func (m *Model) GetSensor(sensor int) bool {
+    if (sensor < 1 || sensor > MAX_SENSORS) {
+        panic(fmt.Errorf("Invalid sensor number %d [1..%d]", sensor, MAX_SENSORS))
+    }
+
+    m.mutex.Lock()
+    defer m.mutex.Unlock()
+
+    sensor -= 1
+    aiu   := sensor / SENSORS_PER_AIU
+    index := uint(sensor - aiu * SENSORS_PER_AIU)
+
+    return ((m.sensors[aiu] >> index) & 1) != 0
+}
+
 // Get the 14-bit sensor value for the given AIU.
 // AIU numbers are 1-based: 1..MAX_AIUS
 func (m *Model) GetSensors(aiu int) uint16 {
@@ -70,6 +93,29 @@ func (m *Model) GetSensors(aiu int) uint16 {
     }
 
     return m.sensors[aiu - 1]
+}
+
+// Set the 1-bit sensor value for the given sensor.
+// Sensors numbers are 1-based: 1..MAX_SENSORS
+func (m *Model) SetSensor(sensor int, active bool) {
+    if (sensor < 1 || sensor > MAX_SENSORS) {
+        panic(fmt.Errorf("Invalid sensor number %d [1..%d]", sensor, MAX_SENSORS))
+    }
+
+    m.mutex.Lock()
+    defer m.mutex.Unlock()
+
+    sensor -= 1
+    aiu   := sensor / SENSORS_PER_AIU
+    index := uint(sensor - aiu * SENSORS_PER_AIU)
+
+    n := m.sensors[aiu]
+    if active {
+        n |= 1 << index
+    } else {
+        n &= ^(1 << index)
+    }
+    m.sensors[aiu] = n
 }
 
 // Set the 14-bit sensors value for the given AIU.
@@ -113,11 +159,15 @@ func (m *Model) SetTurnoutState(index uint, normal bool) {
     m.mutex.Lock()
     defer m.mutex.Unlock()
 
+    n := m.turnouts
     if normal {
-        m.turnouts &= ^(1 << index)
+        n &= ^(1 << index)
     } else {
-        m.turnouts |= 1 << index
+        n |= 1 << index
     }
+    m.turnouts = n
+    m.sensors[0] = uint16( n                     & SENSORS_MASK)
+    m.sensors[1] = uint16((n >> SENSORS_PER_AIU) & SENSORS_MASK)
 }
 
 func (m *Model) GetTurnoutStates() uint32 {

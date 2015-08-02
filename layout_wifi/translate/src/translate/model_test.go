@@ -23,6 +23,20 @@ func TestSensors(t *testing.T) {
 
         m.SetSensors(i, uint16(i))
         assert.Equal(uint16(i), m.GetSensors(i))
+
+        m.SetSensors(i, uint16(0))
+        assert.Equal(uint16(0), m.GetSensors(i))
+    }
+    
+    for i := 1; i <= MAX_SENSORS; i++ {
+        assert.Equal(false, m.GetSensor(i))
+
+        m.SetSensor(i, true)
+        assert.Equal(true, m.GetSensor(i))
+    }
+
+    for i := 1; i <= MAX_AIUS; i++ {
+        assert.Equal(uint16(0x3FFF), m.GetSensors(i))
     }
 }
 
@@ -45,12 +59,33 @@ func TestTurnoutStates(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    assert.Equal(0x0000, m.GetTurnoutStates())
+    assert.Equal(uint32(0), m.GetTurnoutStates())
+    assert.Equal(uint16(0), m.GetSensors(1))
+    assert.Equal(uint16(0), m.GetSensors(2))
     
-    m.SetTurnoutState(1, true)
-    m.SetTurnoutState(2, false)
-    m.SetTurnoutState(4, true)
-    m.SetTurnoutState(5, false)
-    
-    assert.Equal(0x0022, m.GetTurnoutStates())
+    m.SetTurnoutState( 1, true)
+    m.SetTurnoutState( 2, false)
+    m.SetTurnoutState( 5, true)
+    m.SetTurnoutState( 6, false)
+    m.SetTurnoutState( 9, false)
+    m.SetTurnoutState(13, false)
+    m.SetTurnoutState(17, false)
+    m.SetTurnoutState(21, false)
+    m.SetTurnoutState(25, false)
+    m.SetTurnoutState(28, false)
+
+    assert.Equal(uint32(0x9111122), m.GetTurnoutStates())
+    assert.Equal(uint16(0x1122),    m.GetSensors(1))
+    assert.Equal(uint16(0x2444),    m.GetSensors(2))
+
+    assert.Equal(false, m.GetSensor( 1))
+    assert.Equal(true , m.GetSensor( 2))
+    assert.Equal(false, m.GetSensor( 5))
+    assert.Equal(true , m.GetSensor( 6))
+    assert.Equal(true , m.GetSensor( 9))
+    assert.Equal(true , m.GetSensor(13))
+    assert.Equal(true , m.GetSensor(17))
+    assert.Equal(true , m.GetSensor(21))
+    assert.Equal(true , m.GetSensor(25))
+    assert.Equal(true , m.GetSensor(28))
 }

@@ -186,8 +186,8 @@ func TestHandleNceConn_ReadTurnouts(t *testing.T) {
 
     m.SetTurnoutState(1, true)
     m.SetTurnoutState(2, false)
-    m.SetTurnoutState(4, true)
-    m.SetTurnoutState(5, false)
+    m.SetTurnoutState(5, true)
+    m.SetTurnoutState(6, false)
                  
     c.reset( []byte{ NCE_READ_TURNOUTS, 0x01, 0x23 } )
     HandleNceConn(m, c)

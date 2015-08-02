@@ -1,17 +1,23 @@
 package translate
 
 import (
+    "bufio"
     "fmt"
     "net"
     "strconv"
     "strings"
     "sync"
+    "time"
 )
 
 const SRCP_PORT           = ":4303"
 const SRCP_MODE_HANDSHAKE = "HANDSHAKE"
 const SRCP_MODE_INFO      = "INFO"
 const SRCP_MODE_COMMAND   = "COMMAND"
+const SRCP_HEADER         = "SRCP 0.8.4; SRCPOTHER 0.8.3"
+
+const SRCP_BUS_TURNOUTS   = 7 // bus used by SRCP Client to control the turnouts
+const SRCP_BUS_SENSORS    = 8 // bus used by SRCP Client to poll sensors
 
 //-----
 
@@ -23,11 +29,15 @@ type SrcpSession struct {
     Sessions *SrcpSessions
 }
 
-func (s *SrcpSession) Reply(str string) {
-    s.Time += 1
-    str = fmt.Sprintf("%d %s\n", s.Time, str)
+func (s *SrcpSession) ReplyRaw(str string) {
+    str = fmt.Sprintf("%s\n", str)
     fmt.Printf("[SRCP %d] < %s", s.Id, str)
     s.Conn.Write( []byte(str) )
+}
+
+func (s *SrcpSession) Reply(str string) {
+    s.Time += 1
+    s.ReplyRaw(fmt.Sprintf("%d %s", s.Time, str))
 }
 
 //-----
@@ -121,115 +131,27 @@ func HandleSrcpConn(m *Model, s *SrcpSession) {
     conn := s.Conn
     defer conn.Close()
 
-/*
-    sensors := make([]uint16, MAX_AIU)
-    buf := make([]byte, 16)
+    s.ReplyRaw(SRCP_HEADER)
+    
+    r := bufio.NewReader(conn)
 
     loopRead: for !m.IsQuitting() {
-        n, err := conn.Read(buf[0:1])
+        if s.Mode == SRCP_MODE_INFO {
+            s.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+        }
+        line, err := r.ReadString('\n')
 
-        if n == 1 && err == nil {
-            cmd := buf[0]
-
-            // TODO limit with if-verbose flag
-            fmt.Printf("[NCE] Command: 0x%02x\n", cmd)
-            
-            switch cmd {
-            case OP_GET_VERSION:
-                // Op: Get version.
-                // Args: None
-                // Reply: version 6.3.8
-                fmt.Println("[NCE] > Version")
-                buf[0] = 6
-                buf[1] = 3
-                buf[2] = 8
-                n, err = conn.Write(buf[0:3])
-            
-            case OP_GET_AIU_SENSORS:            
-                // Op: AIU polling
-                // Args: 1 byte (AIU number)
-                // Reply: returns 4 bytes (sensor BE, mask BE, 14 bits max)
-                n, err := conn.Read(buf[0:1])
-                aiu := int(buf[0])
-                if n == 1 && err == nil && aiu >= 0 && aiu < MAX_AIU {
-                    s := m.GetSensors(aiu)
-                    buf[0] = byte((s >> 8) & 0x0FF)
-                    buf[1] = byte( s       & 0x0FF)
-
-                    mask := s ^ sensors[aiu]
-                    sensors[aiu] = s
-
-                    buf[2] = byte((mask >> 8) & 0x0FF)
-                    buf[3] = byte( mask       & 0x0FF)
-
-                    // TODO limit with if-verbose flag
-                    fmt.Printf("[NCE] > Poll AIU[%d] = %04x ^ %04x\n", aiu, s, mask)
-                    
-                    n, err = conn.Write(buf[0:4])
-                } else {
-                    fmt.Printf("[NCE] > Invalid Poll AIU [%d], n=%d, err=%v\n", aiu, n, err)
-                }
-                
-            case OP_TRIGGER_ACC:
-                // Op: Trigger accessories (i.e. turnouts)
-                // Args: 3 bytes (2 for address big endian, 1 op: 3=normal/on, 4=reverse/off)
-                // Reply: 1 byte "!"
-                n, err := conn.Read(buf[0:3])
-                addr := (int(buf[0]) << 8) + int(buf[1])
-                op   := int(buf[2])
-                if n == 3 && err == nil && addr >= 0 && (op == 3 || op == 4) {
-                    fmt.Printf("[NCE] > Trigger Acc [%04x], op=%d\n", addr, op)
-
-                    m.SendTurnoutOp( &TurnoutOp{addr, op == 3} )
-                    
-                    buf[0] = '!'
-                    n, err = conn.Write(buf[0:1])
-                } else {
-                    fmt.Printf("[NCE] > Invalid Trigger Acc [%04x], op=%d, n=%d, err=%v\n", addr, op, n, err)
-                }
-                
-            case OP_READ_RAM:
-                // Op: Read one byte from RAM
-                // Args: 2 bytes (address, big endian)
-                // Reply: 1 byte
-                n, err := conn.Read(buf[0:2])
-                addr := (int(buf[0]) << 8) + int(buf[1])
-                if n == 2 && err == nil && addr >= 0 {
-                    // Mock: we ignore the address and just return 0 all the time.
-                    fmt.Printf("[NCE] > Read RAM [%04x]\n", addr)
-                    buf[0] = 0
-                    n, err = conn.Write(buf[0:1])
-                } else {
-                    fmt.Printf("[NCE] > Invalid Read RAM [%04x], n=%d, err=%v\n", addr, n, err)
-                }
-
-            case OP_READ_TURNOUTS:
-                // Op: Read 16-bytes from the address specified
-                // Args: 2 bytes (address, big endian)
-                // Reply: 16 bytes which are turnout feedback state,
-                // 1 bit per turnout "sensor", little endian.
-                n, err := conn.Read(buf[0:2])
-                addr := (int(buf[0]) << 8) + int(buf[1])
-                if n == 2 && err == nil && addr >= 0 {
-                    // Mock: we ignore the address and just return all turnout states
-                    states := m.GetTurnoutStates()
-                    for i := 0; i < 4; i++ {
-                        buf[i] = byte(states & 0x0FF)
-                        states = states >> 8
-                    }
-                    for i := 4; i < 16; i++ {
-                        buf[i] = 0
-                    }
-                    
-                    fmt.Printf("[NCE] > Read Turnouts [%04x] %v\n", addr, buf)
-                    n, err = conn.Write(buf[0:16])
-                } else {
-                    fmt.Printf("[NCE] > Invalid Read Turnouts [%04x], n=%d, err=%v\n", addr, n, err)
-                }
-                
-            default:
-                fmt.Printf("[NCE] > Ignored command 0x%02x\n", cmd)
+        if s.Mode == SRCP_MODE_INFO && err != nil {
+            if e, ok := err.(*net.OpError); ok && e.Timeout() {
+                // TODO send periodic INFO sensor updates
+                // continue loopRead
             }
+        }
+
+        if err == nil {
+            line := strings.TrimSpace(line)
+            fmt.Printf("[SRCP %d] > %s\n", s.Id, line)
+            err = HandleSrcpLine(m, s, line)
         }
 
         if err != nil {
@@ -241,6 +163,57 @@ func HandleSrcpConn(m *Model, s *SrcpSession) {
             }
         }
     }
-*/
+    
     fmt.Println("[SRCP] Connection closed")
+}
+
+func HandleSrcpLine(m *Model, s *SrcpSession, line string) error {
+
+    if strings.Index(line, "SET PROTOCOL SRCP ") == 0 {
+        s.Reply("201 OK PROTOCOL SRCP")
+        
+    } else if strings.Index(line, "SET CONNECTIONMODE SRCP ") == 0 {
+        s.Mode = line[ len("SET CONNECTIONMODE SRCP ") : ]
+        s.Reply("202 OK CONNECTIONMODE")
+                
+    } else if line == "GO" {
+        s.Reply("200 OK GO " + strconv.Itoa(s.Id))
+        if s.Mode == SRCP_MODE_INFO {
+            s.Reply("100 INFO 0 DESCRIPTION SESSION SERVER TIME")
+
+            // time ratio fx:fy
+            s.Reply("100 INFO 0 TIME 1 1")
+            // time julianDay HH MM SS... just mock it
+            s.Reply("100 INFO 0 TIME 12345 23 59 59")
+
+            // power is always on and not really controllable
+            s.Reply("100 INFO 1 POWER ON controlled by digix")
+
+            // bus 7 is SRCP_BUS_TURNOUTS
+            s.Reply("100 INFO 7 DESCRIPTION GA DESCRIPTION")
+            // give the initial turnout states
+            states := m.GetTurnoutStates()
+            for t := 1; t <= MAX_TURNOUTS; t++ {
+                normal := (states & 1)
+                states >>= 1
+                // turnout N port 0 for normal, value 1 if normal
+                // turnout N port 1 for reverse, value 1 if reverse
+                s.Reply(fmt.Sprintf("100 INFO 7 GA %d 0 %d", t, normal))
+                s.Reply(fmt.Sprintf("100 INFO 7 GA %d 1 %d", t, 1 - normal))
+            }
+
+            // bus 8 is SRCP_BUS_SENSORS
+            s.Reply("100 INFO 8 DESCRIPTION FB DESCRIPTION")
+            // give the initial sensors states
+            for t := 1; t <= MAX_SENSORS; t++ {               
+                b := 0
+                if m.GetSensor(t) {
+                    b = 1
+                }
+                s.Reply(fmt.Sprintf("100 INFO 8 FB %d %d", t, b))
+            }
+        }
+    }
+
+    return nil
 }
