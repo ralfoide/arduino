@@ -1,11 +1,13 @@
 package translate
 
 import (
+    "flag"
     "fmt"
     "net"
 )
 
-const NCE_PORT           = ":8080"
+var NCE_PORT = flag.String("nce-port", ":8080", "NCE server host:port")
+
 const NCE_GET_VERSION     = 0xAA
 const NCE_GET_AIU_SENSORS = 0x8A
 const NCE_READ_TURNOUTS   = 0x8F
@@ -15,7 +17,7 @@ const NCE_READ_RAM        = 0x9D
 func NceServer(m *Model) {
     fmt.Println("Start NCE server")
 
-    listener, err := net.Listen("tcp", NCE_PORT)
+    listener, err := net.Listen("tcp", *NCE_PORT)
     if err != nil {
         panic(err)
     }

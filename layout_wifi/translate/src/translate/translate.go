@@ -2,12 +2,21 @@ package translate
 
 import (
     "bufio"
+    "flag"
     "fmt"
     "io"
     "os"
     "os/signal"
     "syscall"
 )
+
+var DX_SERV bool
+
+func init() {
+    flag.BoolVar(&DX_SERV, "simulate", false, "Simulate DigiX server")
+}
+
+// -----
 
 func SetupSignal(m *Model) {
     c := make(chan os.Signal, 1)
@@ -36,9 +45,12 @@ func TerminalLoop(m *Model) {
     for !m.IsQuitting() {
         str := ReadLine(os.Stdin)
 
-        if str == "quit" || str == "q" {
+        switch {
+        case str == "quit" || str == "q":
             m.SetQuitting()
-        } else {
+        case DX_SERV && str == "foo":
+            fmt.Println("TBD")
+        default:
             fmt.Println("Unknown command. Use quit or q.")
         }
     }
@@ -50,6 +62,9 @@ func Main() {
     SetupSignal(model)
     NceServer(model)
     SrcpServer(model)
+    if (DX_SERV) {
+        // Simulate DigiX server
+    }
     TerminalLoop(model)
 }
 

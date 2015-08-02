@@ -2,6 +2,7 @@ package translate
 
 import (
     "bufio"
+    "flag"
     "fmt"
     "net"
     "strconv"
@@ -10,7 +11,8 @@ import (
     "time"
 )
 
-const SRCP_PORT           = ":4303"
+var SRCP_PORT = flag.String("srcp-port", ":4303", "SRCP server host:port")
+
 const SRCP_MODE_HANDSHAKE = "HANDSHAKE"
 const SRCP_MODE_INFO      = "INFO"
 const SRCP_MODE_COMMAND   = "COMMAND"
@@ -104,7 +106,7 @@ func (s *SrcpSessions) String() string {
 func SrcpServer(m *Model) {
     fmt.Println("Start SRCP server")
 
-    listener, err := net.Listen("tcp", SRCP_PORT)
+    listener, err := net.Listen("tcp", *SRCP_PORT)
     if err != nil {
         panic(err)
     }
