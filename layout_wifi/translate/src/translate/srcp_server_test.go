@@ -148,7 +148,7 @@ func TestHandleSrcpLine_Go_Info(t *testing.T) {
                "16 100 INFO 0 TIME 12345 23 59 59\n" +
                "17 100 INFO 1 POWER ON controlled by digix\n" +
                "18 100 INFO 7 DESCRIPTION GA DESCRIPTION\n" +
-               "19 100 INFO 7 GA 1 0 1\n" +
+ /*            "19 100 INFO 7 GA 1 0 1\n" +
                "20 100 INFO 7 GA 1 1 0\n" +
                "21 100 INFO 7 GA 2 0 1\n" +
                "22 100 INFO 7 GA 2 1 0\n" +
@@ -203,11 +203,11 @@ func TestHandleSrcpLine_Go_Info(t *testing.T) {
                "71 100 INFO 7 GA 27 0 1\n" +
                "72 100 INFO 7 GA 27 1 0\n" +
                "73 100 INFO 7 GA 28 0 1\n" +
-               "74 100 INFO 7 GA 28 1 0\n" +
-               "75 100 INFO 8 DESCRIPTION FB DESCRIPTION\n" +
+               "74 100 INFO 7 GA 28 1 0\n" + */
+               "19 100 INFO 8 DESCRIPTION FB DESCRIPTION\n" +
                // sensors set to zero are not transmitted
-               "76 100 INFO 8 FB 55 1\n" +
-               "77 100 INFO 8 FB 56 1\n"), 
+               "20 100 INFO 8 FB 55 1\n" +
+               "21 100 INFO 8 FB 56 1\n"), 
         c._write)    
 }
 

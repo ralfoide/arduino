@@ -90,12 +90,12 @@ func HandleNceConn(m *Model, conn net.Conn) {
                 
             case NCE_TRIGGER_ACC:
                 // Op: Trigger accessories (i.e. turnouts)
-                // Args: 3 bytes (2 for address big endian, 1 op: 3=normal/on, 4=reverse/off)
+                // Args: 4 bytes (2 for address big endian, 1 op: 3=normal/on, 4=reverse/off, 1 byte=0)
                 // Reply: 1 byte "!"
-                n, err := conn.Read(buf[0:3])
+                n, err := conn.Read(buf[0:4])
                 addr := (int(buf[0]) << 8) + int(buf[1])
                 op   := int(buf[2])
-                if n == 3 && err == nil && addr >= 1 && addr <= MAX_TURNOUTS && (op == 3 || op == 4) {
+                if n == 4 && err == nil && addr >= 1 && addr <= MAX_TURNOUTS && (op == 3 || op == 4) {
                     fmt.Printf("[NCE] > Trigger Acc [%04x], op=%d\n", addr, op)
 
                     m.SendTurnoutOp( &TurnoutOp{addr, op == 3} )

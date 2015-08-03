@@ -48,14 +48,15 @@ func TestHandleLwServLine_TurnoutReverse(t *testing.T) {
 
 func TestLwServPollSensors(t *testing.T) {
     assert := assert.New(t)
+    m := NewModel()
     s := NewLwServ()
     
-    assert.Equal("@S010000\n", LwServPollSensors(s))
+    assert.Equal("@S010000\n", LwServPollSensors(m, s))
 
     s.sensors_chan <- LwSensor{ 1,  true}
     s.sensors_chan <- LwSensor{ 2,  true}
     s.sensors_chan <- LwSensor{ 2, false}
     s.sensors_chan <- LwSensor{14,  true}
 
-    assert.Equal("@S012001\n", LwServPollSensors(s))
+    assert.Equal("@S012001\n", LwServPollSensors(m, s))
 }

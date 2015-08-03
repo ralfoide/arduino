@@ -204,10 +204,14 @@ func HandleSrcpLine(m *Model, s *SrcpSession, line string) error {
             for t := 1; t <= MAX_TURNOUTS; t++ {
                 normal := (states & 1)
                 states >>= 1
-                // turnout N port 0 for normal, value 1 if normal
-                // turnout N port 1 for reverse, value 1 if reverse
-                s.Reply(fmt.Sprintf("100 INFO 7 GA %d 0 %d", t, 1 - normal))
-                s.Reply(fmt.Sprintf("100 INFO 7 GA %d 1 %d", t, normal))
+                if normal == 1 {
+                    // TODO only send reversed turnouts. This may not be up to spec.
+                    //
+                    // turnout N port 0 for normal, value 1 if normal
+                    // turnout N port 1 for reverse, value 1 if reverse
+                    s.Reply(fmt.Sprintf("100 INFO 7 GA %d 0 %d", t, 1 - normal))
+                    s.Reply(fmt.Sprintf("100 INFO 7 GA %d 1 %d", t, normal))
+                }
             }
 
             // bus 8 is SRCP_BUS_SENSORS

@@ -147,8 +147,8 @@ func TestHandleNceConn_TriggerTurnout(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    c := newMockConn( []byte{ NCE_TRIGGER_ACC, 0x00, 0x08, 3, 
-                              NCE_TRIGGER_ACC, 0x00, 0x08, 4 } )
+    c := newMockConn( []byte{ NCE_TRIGGER_ACC, 0x00, 0x08, 3, 0, 
+                              NCE_TRIGGER_ACC, 0x00, 0x08, 4, 0 } )
     HandleNceConn(m, c)
     assert.Equal([]byte{ '!', '!' }, c._write)
 

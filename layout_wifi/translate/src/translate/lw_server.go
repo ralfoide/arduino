@@ -1,11 +1,21 @@
 package translate 
 
+/*
+    Simulates the LayoutWifi server running on a DigiX.
+    Note that the DigiX USR-WIFI232 module has a peculiar mode of
+    operation: all input from incoming connections are serialized
+    onto the serial port, and outputs to the serial ports are sent
+    to all current connections in parallel.
+*/
+
 import (
     "bufio"
     "flag"
     "fmt"
+    "io"
     "net"
     "strings"
+    "sync"
     "time"
 )
 
@@ -50,16 +60,56 @@ type LwSensor struct {
 
 type LwServ struct {
     _sensors    []uint16
+    _last       []uint16
     _turnouts   []uint8
     sensors_chan chan LwSensor
+    reader_chan  chan string
+    writer_chan  chan string
+
+    mutex       sync.Mutex
+    writer_id   int
+    writers     map[int]chan string
 }
 
 func NewLwServ() *LwServ {
     lw := &LwServ{}
     lw._sensors = make([]uint16, LW_AIU_N)
+    lw._last    = make([]uint16, LW_AIU_N)
     lw._turnouts = make([]uint8, LW_TURNOUT_N)
     lw.sensors_chan = make(chan LwSensor, 32)
+    lw.reader_chan  = make(chan string, 32)
+    lw.writer_chan  = make(chan string, 32)
+    lw.writers      = make(map[int]chan string)
+    
+    for i := 0; i < LW_AIU_N; i++ {
+        lw._last[i] = uint16(0xFFFF)
+    }
+
     return lw
+}
+
+func (s *LwServ) AllocWriterChan() (id int, c chan string) {
+    c = make(chan string, 32)
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+    s.writer_id += 1
+    s.writers[s.writer_id] = c
+    return s.writer_id, c
+}
+
+func (s *LwServ) ReleaseWriterChan(id int) {
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+    delete(s.writers, id)
+}
+
+func (s *LwServ) SendWriters(line string) {
+    s.mutex.Lock()
+    defer s.mutex.Unlock()
+
+    for _, w := range s.writers {
+        w <- line
+    }
 }
 
 //-----
@@ -73,6 +123,8 @@ func LwServer(m *Model) chan LwSensor {
     }
     
     serv := NewLwServ()
+
+    go LwServHandler(m, serv)
     
     go func(listener net.Listener) {
         defer listener.Close()
@@ -82,8 +134,11 @@ func LwServer(m *Model) chan LwSensor {
             if err != nil {
                 panic(err)
             }
+            
             go func(conn net.Conn) {
-                HandleLwServConn(conn, m, serv)
+                id, c := serv.AllocWriterChan()
+                defer serv.ReleaseWriterChan(id)
+                HandleLwServConn(conn, m, serv, id, c)
             }(conn)
         }
     }(listener)
@@ -91,7 +146,27 @@ func LwServer(m *Model) chan LwSensor {
     return serv.sensors_chan
 }
 
-func HandleLwServConn(conn net.Conn, m *Model, s *LwServ) {
+func LwServHandler(m *Model, s *LwServ) {
+    fmt.Println("[LW-SERV] New handler")
+
+    for !m.IsQuitting() {
+        select {
+        case line := <- s.reader_chan:
+            fmt.Printf("[LW-SERV] < %s\n", line)
+            s.writer_chan <- HandleLwServLine(s, line)
+
+        case <- time.After(500 * time.Millisecond):
+            s.writer_chan <- LwServPollSensors(m, s)
+
+        case line := <- s.writer_chan:
+            s.SendWriters(line)
+        }
+    }
+
+    fmt.Println("[LW-SERV] End handler")
+}
+
+func HandleLwServConn(conn net.Conn, m *Model, s *LwServ, id int, writer chan string) {
     fmt.Println("[LW-SERV] New connection")
 
     defer conn.Close()
@@ -99,25 +174,30 @@ func HandleLwServConn(conn net.Conn, m *Model, s *LwServ) {
     r := bufio.NewReader(conn)
 
     loopRead: for !m.IsQuitting() {
-        conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+        conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
         line, err := r.ReadString('\n')
-
-        if err != nil {
-            if e, ok := err.(*net.OpError); ok && e.Timeout() {
-                reply := LwServPollSensors(s)
-                if len(reply) > 0 {
-                    _, err = conn.Write( []byte(reply) )
-                }
-                continue loopRead
-            }
-        }
 
         if err == nil {
             line := strings.TrimSpace(line)
-            fmt.Printf("[LW-SERV] > %s\n", line)
-            reply := HandleLwServLine(s, line)
-            if len(reply) > 0 {
-                _, err = conn.Write( []byte(reply) )
+            s.reader_chan <- line
+            continue loopRead
+        }
+
+        if err != nil {
+            if e, ok := err.(*net.OpError); ok && e.Timeout() {
+
+                loopWrite: for !m.IsQuitting() {
+                    select {
+                    case w := <- writer:
+                        if len(w) > 0 {
+                            fmt.Printf("[LW-SERV %d] > %s", id, w)
+                            conn.Write( []byte(w) )
+                        }
+                        continue loopWrite
+                    default:
+                        continue loopRead
+                    }
+                }
             }
         }
 
@@ -125,8 +205,11 @@ func HandleLwServConn(conn net.Conn, m *Model, s *LwServ) {
             if op, ok := err.(*net.OpError); ok {
                 fmt.Println("[LW-SERV] Connection error:", op.Op)
                 break loopRead
+            } else if err == io.EOF {
+                fmt.Println("[LW-SERV] Connection closing:", err)
+                break loopRead
             } else {
-                panic(err)
+                fmt.Printf("[LW-SERV] Ignored error: %#v\n", err)
             }
         }
     }
@@ -159,9 +242,9 @@ func HandleLwServLine(s *LwServ, line string) string {
                     fmt.Printf("[LW-SERV] Simulate trigger pin %d\n", LW_RELAY_REVERSE(turnout))
                 }
                 s._turnouts[turnout] = direction
-                // Reply is the same command
-                return line + "\n"
             }
+            // Reply is the same command
+            return line + "\n"
         } else {
             fmt.Printf("[LW-SERV] Rejected Turnout Cmd '%s'\n", line);
         }
@@ -172,8 +255,9 @@ func HandleLwServLine(s *LwServ, line string) string {
     return ""
 }
 
-func LwServPollSensors(lw *LwServ) (reply string) {
-    loopRead: for {
+func LwServPollSensors(m *Model, lw *LwServ) (reply string) {
+    
+    loopRead: for !m.IsQuitting() {
         select {
         case s := <- lw.sensors_chan:
             index := s.Sensor
@@ -196,10 +280,13 @@ func LwServPollSensors(lw *LwServ) (reply string) {
         }
     }
 
-    for aiu := 0; aiu < LW_AIU_N; aiu++ {    
-        s := lw._sensors[aiu]
-        reply += fmt.Sprintf("@S%02d%04x\n", aiu + 1, s)
+    for aiu := 1; aiu <= LW_AIU_N; aiu++ {    
+        s := lw._sensors[aiu - 1]
+        if s != lw._last[aiu - 1] {
+            lw._last[aiu - 1] = s
+            reply += fmt.Sprintf("@S%02d%04x\n", aiu, s)
+        }
     }    
-    
+
     return reply
 }
