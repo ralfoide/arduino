@@ -76,17 +76,6 @@ func TestTurnoutStates(t *testing.T) {
     m.SetTurnoutState(28, false)
 
     assert.Equal(uint32(0x9111122), m.GetTurnoutStates())
-    assert.Equal(uint16(0x1122),    m.GetSensors(1))
-    assert.Equal(uint16(0x2444),    m.GetSensors(2))
-
-    assert.Equal(false, m.GetSensor( 1))
-    assert.Equal(true , m.GetSensor( 2))
-    assert.Equal(false, m.GetSensor( 5))
-    assert.Equal(true , m.GetSensor( 6))
-    assert.Equal(true , m.GetSensor( 9))
-    assert.Equal(true , m.GetSensor(13))
-    assert.Equal(true , m.GetSensor(17))
-    assert.Equal(true , m.GetSensor(21))
-    assert.Equal(true , m.GetSensor(25))
-    assert.Equal(true , m.GetSensor(28))
+    assert.Equal(uint16(0x0000),    m.GetSensors(1))
+    assert.Equal(uint16(0x0000),    m.GetSensors(2))
 }

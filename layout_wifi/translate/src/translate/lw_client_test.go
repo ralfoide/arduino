@@ -31,9 +31,9 @@ func TestHandleLwClientReadLine_Sensors(t *testing.T) {
     assert := assert.New(t)
     m := NewModel()
 
-    assert.Nil(HandleLwClientReadLine(m, "@S010000"))
+    assert.Nil(HandleLwClientReadLine(m, "@S030000"))
     assert.Equal(uint16(0), m.GetSensors(AIU_SENSORS_BASE))
 
-    assert.Nil(HandleLwClientReadLine(m, "@S012001"))
+    assert.Nil(HandleLwClientReadLine(m, "@S032001"))
     assert.Equal(uint16(0x2001), m.GetSensors(AIU_SENSORS_BASE))
 }

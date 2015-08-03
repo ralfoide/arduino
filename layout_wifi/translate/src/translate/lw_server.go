@@ -26,6 +26,8 @@ const LW_RELAY_PIN_1    = 90
 const LW_TURNOUT_N      = 10
 const LW_RELAY_N        =  2 * LW_TURNOUT_N
 
+const LW_SENSORS_PER_AIU = SENSORS_PER_AIU
+
 const LW_SENSOR_PIN_1   = 107
 const LW_SENSOR_N       =  45
 const LW_AIU_N          =   4
@@ -33,11 +35,11 @@ const LW_AIU_N          =   4
 const LW_TURNOUT_NORMAL    = 'N'
 const LW_TURNOUT_REVERSE   = 'R'
 
-func LW_RELAY_NORMAL(T int) int {
+func LW_RELAY_NORMAL(T uint) uint {
     return 2 * (T)
 }
 
-func LW_RELAY_REVERSE(T int) int {
+func LW_RELAY_REVERSE(T uint) uint {
     return ((2 * (T)) + 1)
 }
 
@@ -61,7 +63,6 @@ type LwSensor struct {
 type LwServ struct {
     _sensors    []uint16
     _last       []uint16
-    _turnouts   []uint8
     sensors_chan chan LwSensor
     reader_chan  chan string
     writer_chan  chan string
@@ -75,7 +76,6 @@ func NewLwServ() *LwServ {
     lw := &LwServ{}
     lw._sensors = make([]uint16, LW_AIU_N)
     lw._last    = make([]uint16, LW_AIU_N)
-    lw._turnouts = make([]uint8, LW_TURNOUT_N)
     lw.sensors_chan = make(chan LwSensor, 32)
     lw.reader_chan  = make(chan string, 32)
     lw.writer_chan  = make(chan string, 32)
@@ -229,19 +229,29 @@ func HandleLwServLine(s *LwServ, line string) string {
     if len(line) == 5 && strings.HasPrefix(line, "@T") {
         // Turnout command: @T<00><N|R>\n
         buf := line[2:5]
-        turnout := (int(buf[0] - '0') << 8) + int(buf[1] - '0')
+        turnout := (uint(buf[0] - '0') << 8) + uint(buf[1] - '0')
         direction := uint8(buf[2])
         if ((direction == LW_TURNOUT_NORMAL || direction == LW_TURNOUT_REVERSE) &&
                 turnout > 0 && turnout <= LW_TURNOUT_N) {
             fmt.Printf("[LW-SERV] Accepted Turnout Cmd %d = %c\n", turnout, direction);
             turnout -= 1 // cmd index is 1-based but array & relays are 0-based
-            if s._turnouts[turnout] != direction {
-                if direction == LW_TURNOUT_NORMAL {
+            
+            aiu := turnout / LW_SENSORS_PER_AIU
+            turnout = turnout % LW_SENSORS_PER_AIU
+            state := (s._sensors[aiu] >> turnout) & 1
+            var desired uint16
+            if direction == LW_TURNOUT_REVERSE {
+                desired = 1
+            }
+            
+            if state != desired {
+                if direction == LW_TURNOUT_NORMAL {                
                     fmt.Printf("[LW-SERV] Simulate trigger pin %d\n", LW_RELAY_NORMAL(turnout))
+                    s._sensors[aiu] = LW_CLEAR_BIT(s._sensors[aiu], turnout)
                 } else {
                     fmt.Printf("[LW-SERV] Simulate trigger pin %d\n", LW_RELAY_REVERSE(turnout))
+                    s._sensors[aiu] = LW_SET_BIT(s._sensors[aiu], turnout)
                 }
-                s._turnouts[turnout] = direction
             }
             // Reply is the same command
             return line + "\n"

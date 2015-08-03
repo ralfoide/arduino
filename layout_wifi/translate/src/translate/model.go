@@ -170,8 +170,6 @@ func (m *Model) SetTurnoutState(index uint, normal bool) {
         n |= 1 << index
     }
     m.turnouts = n
-    m.sensors[0] = uint16( n                     & SENSORS_MASK)
-    m.sensors[1] = uint16((n >> SENSORS_PER_AIU) & SENSORS_MASK)
 }
 
 func (m *Model) GetTurnoutStates() uint32 {
@@ -180,13 +178,3 @@ func (m *Model) GetTurnoutStates() uint32 {
 
     return m.turnouts
 }
-
-/* do we really need this?
-func (m *Model) GetTurnoutState(index int) (normal bool) {
-    m.mutex.Lock()
-    defer m.mutex.Unlock()
-
-    return (m.turnouts & (1 << index)) == 0
-}
-*/
-

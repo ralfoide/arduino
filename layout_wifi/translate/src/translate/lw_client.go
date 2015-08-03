@@ -96,8 +96,8 @@ func HandleLwClientReadLine(m *Model, line string) (err error) {
         data, err = strconv.ParseInt(line[4:8], 16, 32) // parse hex int32
         if aiu > 0 && aiu <= LW_AIU_N {
             fmt.Printf("[LWC-READER] Sensors %d = %04x\n",
-                aiu + AIU_SENSORS_BASE - 1, uint16(data & SENSORS_MASK))
-            m.SetSensors(aiu + AIU_SENSORS_BASE - 1, uint16(data & SENSORS_MASK))
+                aiu, uint16(data & SENSORS_MASK))
+            m.SetSensors(aiu, uint16(data & SENSORS_MASK))
         }
     } else {
         fmt.Printf("[LWC-READER] Ignore unknown line: '%s'\n", line)
