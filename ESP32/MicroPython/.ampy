@@ -1,0 +1,4 @@
+# Port: COM3 == /dev/ttyS2 on Cygwin
+AMPY_PORT=/dev/ttyS2
+AMPY_BAUD=115200
+AMPY_DELAY=0.5
