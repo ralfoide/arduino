@@ -1,7 +1,11 @@
-from machine import I2C, Pin
+#a="""
+from machine import I2C, Pin, PWM
 from neopixel import NeoPixel
 import ssd1306
 import time
+
+DO_NEO_DEMO = False
+DO_SERVO_DEMO = True
 
 # OLED display
 rst = Pin(16, Pin.OUT)
@@ -11,10 +15,19 @@ sda = Pin(4, Pin.OUT, Pin.PULL_UP)
 i2c = I2C(scl=scl, sda=sda, freq=450000)
 oled = ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3c)
 
+# Pin 0 = PRG button on board.
+# Button.value() is reversed. 1=released 0=pushed.
+btn_pin = Pin(0, Pin.IN)
 
+# Servo, min/max values for Blue Arrow S03611
+servo_pwm = PWM(Pin(12), freq=50)
+SERVO_MIN = 30  # -- measured min at 26
+SERVO_MAX = 100 # -- measured max at 108
+servo = SERVO_MIN
+servo_pwm.duty(servo)
 
-NLED   = 300
-BR_MAX = 64 # max brightness
+NLED   = 10
+BR_MAX = 64  # max brightness
 BR_LVL = 4   # number of brightness levels (including max)
 MAX_INDEX = NLED + 2*BR_LVL
 rgb_mask = 1
@@ -23,13 +36,14 @@ np = NeoPixel(np_pin, NLED)
 np.fill( (0,0,0) )
 np.write()
 
-BAR="|/-\\"
+BAR="|/-\\\\"
 BARlen = len(BAR)
 counter = 1
-def update_oled():
+def update_oled(msg = None):
+    if not msg: msg = "MicroPython"
     oled.fill(0)
-    oled.text('ESP32', 45, 5)
-    oled.text('MicroPython', 20, 20) 
+    oled.text("ESP32", 45, 5)
+    oled.text(msg, 20, 20) 
     oled.text(BAR[counter % BARlen] + " " + str(counter), 45, 35)
     oled.show()
 
@@ -50,7 +64,7 @@ def update_neopix():
         set_np_led(i, BR_MAX, curr - i)
     np.write()
     
-while True:
+while DO_NEO_DEMO:
     print(counter)
     update_oled()
     update_neopix()
@@ -58,6 +72,24 @@ while True:
     if counter % MAX_INDEX == 0:
         rgb_mask = 1 + ((rgb_mask + 1) % 7)
         print("rgb_mask", rgb_mask)
-    time.sleep(0.01)
+    time.sleep(0.1)
 
+if DO_SERVO_DEMO:
+    update_oled("Use PRG btn") 
+while DO_SERVO_DEMO:
+    if not btn_pin.value():  # PRG button pressed
+        print(str(counter) +  " srv " + str(servo) )
+        update_oled("Servo " + str(servo))
+        counter += 1
+        servo_pwm.duty(servo)
+        servo += 10
+        if servo > SERVO_MAX: servo = SERVO_MIN
+        time.sleep(0.25)
+
+    time.sleep(0.1)
+    
 # end
+#"""
+#f=open("main.py", "w")
+#f.write(a)
+#f.close()
