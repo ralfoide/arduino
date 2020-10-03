@@ -11,7 +11,9 @@ sda = Pin(4, Pin.OUT, Pin.PULL_UP)
 i2c = I2C(scl=scl, sda=sda, freq=450000)
 oled = ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3c)
 
-NLED   = 10
+
+
+NLED   = 300
 BR_MAX = 64 # max brightness
 BR_LVL = 4   # number of brightness levels (including max)
 MAX_INDEX = NLED + 2*BR_LVL
@@ -56,6 +58,6 @@ while True:
     if counter % MAX_INDEX == 0:
         rgb_mask = 1 + ((rgb_mask + 1) % 7)
         print("rgb_mask", rgb_mask)
-    time.sleep(0.1)
+    time.sleep(0.01)
 
 # end
