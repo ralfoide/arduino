@@ -227,6 +227,10 @@ void _camera_init() {
 #define HTTP_PORT 80
 httpd_handle_t gStreamHttpd = NULL;
 
+uint32_t gStatImgCount = 0;
+uint32_t gStatLastImgMs = 0;
+
+
 // From espressif app_httpd.cpp sample
 typedef struct {
         httpd_req_t *req;
@@ -275,11 +279,38 @@ esp_err_t _image_handler(httpd_req_t *req) {
   }
   esp_camera_fb_return(fb);
   int64_t fr_end = esp_timer_get_time();
-  Serial.printf("Http JPG: fmt=%d len=%uB time=%ums\n",
+  gStatImgCount++;
+  gStatLastImgMs = (uint32_t)((fr_end - fr_start)/1000);
+  Serial.printf("Http JPG: fmt=%d len=%u B time=%u ms\n",
     fb_format,
     (uint32_t)(fb_len),
-    (uint32_t)((fr_end - fr_start)/1000));
+    gStatLastImgMs);
   return res;
+}
+
+#define HTTP_BUF_LEN 1024
+static char buf[HTTP_BUF_LEN];
+
+esp_err_t _index_handler(httpd_req_t *req) {
+  char *p = buf;
+
+  Serial.printf("Http: Index cnx started. Wifi RSSI %d\n", WiFi.RSSI());
+
+  p += sprintf(p, "<html><head><meta http-equiv=\"refresh\" content=\"1\"></head><body>\n");
+  p += sprintf(p, "<p>Image %u, time %u ms\n", gStatImgCount, gStatLastImgMs);
+  p += sprintf(p, "<p><img src='/img' />\n");
+  p += sprintf(p, "</body></html>\n");
+  *p++ = 0;
+
+  size_t len = strlen(buf);
+  if (len >= HTTP_BUF_LEN) {
+    Serial.printf("ERROR BUFFER OVERFLOW. Increase HTML buf from %d to %d <<<<<\n", HTTP_BUF_LEN, len);
+    httpd_resp_send_500(req);
+    return ESP_FAIL;
+  }
+
+  httpd_resp_set_type(req, "text/html");
+  return httpd_resp_send(req, buf, len);
 }
 
 void _http_start() {
@@ -289,6 +320,13 @@ void _http_start() {
   httpd_uri_t index_uri = {
     .uri       = "/",
     .method    = HTTP_GET,
+    .handler   = _index_handler,
+    .user_ctx  = NULL
+  };
+
+  httpd_uri_t image_uri = {
+    .uri       = "/img",
+    .method    = HTTP_GET,
     .handler   = _image_handler,
     .user_ctx  = NULL
   };
@@ -296,6 +334,7 @@ void _http_start() {
   if (httpd_start(&gStreamHttpd, &config) == ESP_OK) {
     Serial.println("Http: Started");
     httpd_register_uri_handler(gStreamHttpd, &index_uri);
+    httpd_register_uri_handler(gStreamHttpd, &image_uri);
   } else {
     Serial.println("Http: Error starting");
   }
