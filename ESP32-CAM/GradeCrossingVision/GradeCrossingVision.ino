@@ -224,77 +224,8 @@ void _camera_init() {
 
 // ==== HTTP Server ====
 
-#define PART_BOUNDARY "123456789000000000000987654321"
 #define HTTP_PORT 80
-static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
-static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
-static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
-
 httpd_handle_t gStreamHttpd = NULL;
-
-esp_err_t _stream_handler(httpd_req_t *req) {
-  camera_fb_t *fb = NULL;
-  esp_err_t res = ESP_OK;
-  size_t jpg_buf_len = 0;
-  uint8_t *jpg_buf = NULL;
-  char *part_buf[64];
-
-  Serial.println("Http: Stream cnx started");
-  res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
-  if (res != ESP_OK) {
-    Serial.printf("Http: httpd_resp_set_type res 0x%x\n", res);
-    return res;
-  }
-
-  while (true) {
-    fb = esp_camera_fb_get();
-    if (!fb) {
-      Serial.println("Http: esp_camera_fb_get fail\n");
-      res = ESP_FAIL;
-    } else {
-      if (fb->width > 400) {
-        if (fb->format != PIXFORMAT_JPEG) {
-          bool jpeg_converted = frame2jpg(fb, 80, &jpg_buf, &jpg_buf_len);
-          esp_camera_fb_return(fb);
-          fb = NULL;
-          if (!jpeg_converted) {
-            Serial.println("Http: frame2jpg JPEG compression failed");
-            res = ESP_FAIL;
-          }
-        } else {
-          jpg_buf_len = fb->len;
-          jpg_buf = fb->buf;
-        }
-      }
-    }
-    if (res == ESP_OK) {
-      size_t hlen = snprintf((char *)part_buf, 64, _STREAM_PART, jpg_buf_len);
-      res = httpd_resp_send_chunk(req, (const char *)part_buf, hlen);
-    }
-    if (res == ESP_OK) {
-      res = httpd_resp_send_chunk(req, (const char *)jpg_buf, jpg_buf_len);
-    }
-    if (res == ESP_OK) {
-      res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
-    }
-    if (fb) {
-      esp_camera_fb_return(fb);
-      fb = NULL;
-      jpg_buf = NULL;
-    } else if (jpg_buf) {
-      free(jpg_buf);
-      jpg_buf = NULL;
-    }
-    if (res != ESP_OK) {
-      Serial.printf("Http: httpd_resp_send_chunk res 0x%x\n", res);
-      break;
-    }
-    //Serial.printf("MJPG: %uB\n",(uint32_t)(_jpg_buf_len));
-  }
-
-  Serial.printf("Http: Stream cnx end res 0x%x\n", res);
-  return res;
-}
 
 // From espressif app_httpd.cpp sample
 typedef struct {
@@ -319,7 +250,7 @@ esp_err_t _image_handler(httpd_req_t *req) {
   esp_err_t res = ESP_OK;
   int64_t fr_start = esp_timer_get_time();
 
-  Serial.println("Http: Image cnx started");
+  Serial.printf("Http: Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
   fb = esp_camera_fb_get();
   if (!fb) {
     Serial.println("Http: esp_camera_fb_get failed");
