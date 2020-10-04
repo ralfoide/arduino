@@ -1,0 +1,4 @@
+ssid read as-is till\n
+wifi pass read as-is till\n
+# Only the 2 first lines are read. Anything after is ignored.
+# File must Unix-like LF endings, not CRLF.
