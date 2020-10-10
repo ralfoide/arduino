@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <String.h>
 #include <Preferences.h>
+#include "common.h"
 
 // Set camera model
 #define CAMERA_MODEL_AI_THINKER   // for ESP32-CAM module
@@ -179,22 +180,26 @@ void _camera_init() {
 
   //init with high specs to pre-allocate larger buffers
   if (psramFound()) {
-    Serial.println("Camera: PSRAM found, UXGA size");
-    config.frame_size = FRAMESIZE_UXGA;
+    Serial.println("Camera: PSRAM found. Using SVGA size.");
+    // With 4 MB PSRAM we can support UXGA but it is overkill for our application.
+    //--config.frame_size = FRAMESIZE_UXGA;
+    config.frame_size = FRAMESIZE_SVGA;
     config.jpeg_quality = 10;
     config.fb_count = 2;
   } else {
-    Serial.println("Camera: SVGA size");
-    config.frame_size = FRAMESIZE_SVGA;
-    config.jpeg_quality = 12;
-    config.fb_count = 1;
+    Serial.println("Camera: ERROR PSRAM not found.");
+    return;
+    // Serial.println("Camera: SVGA size");
+    // config.frame_size = FRAMESIZE_SVGA;
+    // config.jpeg_quality = 12;
+    // config.fb_count = 1;
   }
 
-#if defined(CAMERA_MODEL_ESP_EYE)
-  // Not used on ESP32-CAM
-  pinMode(13, INPUT_PULLUP);
-  pinMode(14, INPUT_PULLUP);
-#endif
+// #if defined(CAMERA_MODEL_ESP_EYE)
+//   // Not used on ESP32-CAM
+//   pinMode(13, INPUT_PULLUP);
+//   pinMode(14, INPUT_PULLUP);
+// #endif
 
   // camera init
   esp_err_t err = esp_camera_init(&config);
@@ -204,40 +209,42 @@ void _camera_init() {
   }
 
   sensor_t *s = esp_camera_sensor_get();
-  // initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID) {
-    Serial.println("Camera: OV3660 PID");
-    s->set_vflip(s, 1);       //flip it back
-    s->set_brightness(s, 1);  //up the blightness just a bit
-    s->set_saturation(s, -2); //lower the saturation
-  }
+  // Unused code, Our sensor is an OV2640.
+  // // initial sensors are flipped vertically and colors are a bit saturated
+  // if (s->id.PID == OV3660_PID) {
+  //   Serial.println("Camera: OV3660 PID");
+  //   s->set_vflip(s, 1);       //flip it back
+  //   s->set_brightness(s, 1);  //up the blightness just a bit
+  //   s->set_saturation(s, -2); //lower the saturation
+  // }
 
-  // [RM] drop down frame size for higher initial frame rate
-  s->set_framesize(s, FRAMESIZE_QVGA);
+  // // [RM] drop down frame size for higher initial frame rate
+  // s->set_framesize(s, FRAMESIZE_QVGA);
 
-#if defined(CAMERA_MODEL_M5STACK_WIDE)
-  // Not used on ESP32-CAM
+// #if defined(CAMERA_MODEL_M5STACK_WIDE)
+//   // Not used on ESP32-CAM
+//   s->set_vflip(s, 1);
+//   s->set_hmirror(s, 1);
+// #endif
+
+  // Depending on how the sensor is mounted, this can be useful.
+  // TBD: Make it a startup preference.
   s->set_vflip(s, 1);
   s->set_hmirror(s, 1);
-#endif
 }
 
 // ==== HTTP Server ====
 
 #define HTTP_PORT 80
-httpd_handle_t gStreamHttpd = NULL;
+httpd_handle_t gCameraHttpd = NULL;
 
 uint32_t gStatImgCount = 0;
-uint32_t gStatLastImgMs = 0;
+int64_t  gStatLastCaptureTs = 0;
+uint32_t gStatDeltaGrabMs = 0;
+uint32_t gStatDeltaSendMs = 0;
 
 
-// From espressif app_httpd.cpp sample
-typedef struct {
-        httpd_req_t *req;
-        size_t len;
-} jpg_chunking_t;
-
-size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
+size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len) {
     jpg_chunking_t *j = (jpg_chunking_t *)arg;
     if (!index) {
         j->len = 0;
@@ -252,7 +259,6 @@ size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len
 esp_err_t _image_handler(httpd_req_t *req) {
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
-  int64_t fr_start = esp_timer_get_time();
 
   Serial.printf("Http: Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
   fb = esp_camera_fb_get();
@@ -261,6 +267,8 @@ esp_err_t _image_handler(httpd_req_t *req) {
     httpd_resp_send_500(req);
     return ESP_FAIL;
   }
+
+  int64_t fr_start = esp_timer_get_time();
 
   httpd_resp_set_type(req, "image/jpeg");
   httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
@@ -278,13 +286,21 @@ esp_err_t _image_handler(httpd_req_t *req) {
     fb_len = jchunk.len;
   }
   esp_camera_fb_return(fb);
+
   int64_t fr_end = esp_timer_get_time();
+
   gStatImgCount++;
-  gStatLastImgMs = (uint32_t)((fr_end - fr_start)/1000);
-  Serial.printf("Http JPG: fmt=%d len=%u B time=%u ms\n",
+  if (gStatLastCaptureTs != 0) {
+    gStatDeltaGrabMs = (uint32_t)((fr_start - gStatLastCaptureTs)/1000);
+  }
+  gStatLastCaptureTs = fr_start;
+  gStatDeltaSendMs = (uint32_t)((fr_end - fr_start)/1000);
+  Serial.printf("Http JPG: fmt=%d len=%u B grab=%u ms send=%u ms\n",
     fb_format,
     (uint32_t)(fb_len),
-    gStatLastImgMs);
+    gStatDeltaGrabMs,
+    gStatDeltaSendMs);
+
   return res;
 }
 
@@ -292,12 +308,14 @@ esp_err_t _image_handler(httpd_req_t *req) {
 static char buf[HTTP_BUF_LEN];
 
 esp_err_t _index_handler(httpd_req_t *req) {
+  sensor_t * s = esp_camera_sensor_get();
   char *p = buf;
 
   Serial.printf("Http: Index cnx started. Wifi RSSI %d\n", WiFi.RSSI());
 
   p += sprintf(p, "<html><head><meta http-equiv=\"refresh\" content=\"1\"></head><body>\n");
-  p += sprintf(p, "<p>Image %u, time %u ms\n", gStatImgCount, gStatLastImgMs);
+  p += sprintf(p, "<p>Sensor: OV%02xxx\n", s->id.PID);
+  p += sprintf(p, "<p>Image %u, grab=%u ms, send %u ms\n", gStatImgCount, gStatDeltaGrabMs, gStatDeltaSendMs);
   p += sprintf(p, "<p><img src='/img' />\n");
   p += sprintf(p, "</body></html>\n");
   *p++ = 0;
@@ -312,6 +330,9 @@ esp_err_t _index_handler(httpd_req_t *req) {
   httpd_resp_set_type(req, "text/html");
   return httpd_resp_send(req, buf, len);
 }
+
+// In control.cpp
+void _cam_control_init(httpd_handle_t streamHttpd, httpd_config_t &config);
 
 void _http_start() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -330,11 +351,12 @@ void _http_start() {
     .handler   = _image_handler,
     .user_ctx  = NULL
   };
-  
-  if (httpd_start(&gStreamHttpd, &config) == ESP_OK) {
+
+  if (httpd_start(&gCameraHttpd, &config) == ESP_OK) {
     Serial.println("Http: Started");
-    httpd_register_uri_handler(gStreamHttpd, &index_uri);
-    httpd_register_uri_handler(gStreamHttpd, &image_uri);
+    httpd_register_uri_handler(gCameraHttpd, &index_uri);
+    httpd_register_uri_handler(gCameraHttpd, &image_uri);
+    _cam_control_init(gCameraHttpd, config);
   } else {
     Serial.println("Http: Error starting");
   }
