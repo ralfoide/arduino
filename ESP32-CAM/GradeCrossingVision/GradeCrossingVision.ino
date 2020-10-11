@@ -8,11 +8,9 @@
 #include <WiFi.h>
 #include <String.h>
 #include <Preferences.h>
-#include "common.h"
 
-// Set camera model
-#define CAMERA_MODEL_AI_THINKER   // for ESP32-CAM module
-#include "camera_pins.h"
+#include "common.h"
+#include "camera_task.h"
 
 #define PIN_NVS_RESET 16
 #define PIN_FLASH 4
@@ -155,83 +153,6 @@ void _sd_read_config() {
 
 // ==== Camera ====
 
-void _camera_init() {
-  camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = Y2_GPIO_NUM;
-  config.pin_d1 = Y3_GPIO_NUM;
-  config.pin_d2 = Y4_GPIO_NUM;
-  config.pin_d3 = Y5_GPIO_NUM;
-  config.pin_d4 = Y6_GPIO_NUM;
-  config.pin_d5 = Y7_GPIO_NUM;
-  config.pin_d6 = Y8_GPIO_NUM;
-  config.pin_d7 = Y9_GPIO_NUM;
-  config.pin_xclk = XCLK_GPIO_NUM;
-  config.pin_pclk = PCLK_GPIO_NUM;
-  config.pin_vsync = VSYNC_GPIO_NUM;
-  config.pin_href = HREF_GPIO_NUM;
-  config.pin_sscb_sda = SIOD_GPIO_NUM;
-  config.pin_sscb_scl = SIOC_GPIO_NUM;
-  config.pin_pwdn = PWDN_GPIO_NUM;
-  config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_JPEG;
-
-  //init with high specs to pre-allocate larger buffers
-  if (psramFound()) {
-    Serial.println("Camera: PSRAM found. Using SVGA size.");
-    // With 4 MB PSRAM we can support UXGA but it is overkill for our application.
-    //--config.frame_size = FRAMESIZE_UXGA;
-    config.frame_size = FRAMESIZE_SVGA;
-    config.jpeg_quality = 10;
-    config.fb_count = 2;
-  } else {
-    Serial.println("Camera: ERROR PSRAM not found.");
-    return;
-    // Serial.println("Camera: SVGA size");
-    // config.frame_size = FRAMESIZE_SVGA;
-    // config.jpeg_quality = 12;
-    // config.fb_count = 1;
-  }
-
-// #if defined(CAMERA_MODEL_ESP_EYE)
-//   // Not used on ESP32-CAM
-//   pinMode(13, INPUT_PULLUP);
-//   pinMode(14, INPUT_PULLUP);
-// #endif
-
-  // camera init
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    Serial.printf("Camera: init failed with error 0x%x\n", err);
-    return;
-  }
-
-  sensor_t *s = esp_camera_sensor_get();
-  // Unused code, Our sensor is an OV2640.
-  // // initial sensors are flipped vertically and colors are a bit saturated
-  // if (s->id.PID == OV3660_PID) {
-  //   Serial.println("Camera: OV3660 PID");
-  //   s->set_vflip(s, 1);       //flip it back
-  //   s->set_brightness(s, 1);  //up the blightness just a bit
-  //   s->set_saturation(s, -2); //lower the saturation
-  // }
-
-  // // [RM] drop down frame size for higher initial frame rate
-  // s->set_framesize(s, FRAMESIZE_QVGA);
-
-// #if defined(CAMERA_MODEL_M5STACK_WIDE)
-//   // Not used on ESP32-CAM
-//   s->set_vflip(s, 1);
-//   s->set_hmirror(s, 1);
-// #endif
-
-  // Depending on how the sensor is mounted, this can be useful.
-  // TBD: Make it a startup preference.
-  s->set_vflip(s, 1);
-  s->set_hmirror(s, 1);
-}
 
 // ==== HTTP Server ====
 
@@ -311,7 +232,7 @@ esp_err_t _index_handler(httpd_req_t *req) {
   sensor_t * s = esp_camera_sensor_get();
   char *p = buf;
 
-  Serial.printf("Http: Index cnx started. Wifi RSSI %d\n", WiFi.RSSI());
+  Serial.printf("Http: Index cnx started. Wifi RSSI %d, Core %d\n", WiFi.RSSI(), xPortGetCoreID());
 
   p += sprintf(p, "<html><head><meta http-equiv=\"refresh\" content=\"1\"></head><body>\n");
   p += sprintf(p, "<p>Sensor: OV%02xxx\n", s->id.PID);
@@ -395,7 +316,7 @@ void _wifi_loop() {
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  Serial.println();
+  Serial.printf("Grade Crossing INO running on Core %d\n", xPortGetCoreID());
 
   // Setup pins
   pinMode(PIN_FLASH, OUTPUT);
@@ -406,7 +327,7 @@ void setup() {
   _prefs_read();
   _sd_init();
   _sd_read_config();
-  _camera_init();
+  camera_task_init();
   _wifi_init();
 }
 
