@@ -59,15 +59,26 @@ void _esp_camera_init() {
     s->set_hmirror(s, 1);
 }
 
+void _grab_camera_frame() {
+  camera_fb_t * fb = NULL;
+  fb = esp_camera_fb_get();
+  if (!fb) {
+    Serial.println("Camera: esp_camera_fb_get failed");
+    return;
+  }
+}
+
 void _camera_task(void *taskParameters) {
     Serial.printf("Camera Task running on Core %d\n", xPortGetCoreID());
     
     gSharedCamImg = new SharedBuf(gCameraTask, 1);
 
     for (;;) {
+        _grab_camera_frame();
+
         int64_t fr_start = esp_timer_get_time();
-        delay(10000);    // TODO change
-       Serial.printf("Camera Task Loop running on Core %d\n", xPortGetCoreID());
+    //     delay(10000);    // TODO change
+    //    Serial.printf("Camera Task Loop running on Core %d\n", xPortGetCoreID());
     }
 }
 

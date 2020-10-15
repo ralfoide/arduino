@@ -2,7 +2,7 @@
 #include <esp_http_server.h>
 #include <HardwareSerial.h>
 #include "camera_index.h"
-#include "common.h"
+#include "web_task.h"
 
 esp_err_t _control_index_handler(httpd_req_t *req){
     httpd_resp_set_type(req, "text/html");

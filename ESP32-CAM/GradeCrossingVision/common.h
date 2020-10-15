@@ -5,10 +5,5 @@
 #define PRO_CPU 0
 #define APP_CPU 1
 
-// From espressif app_httpd.cpp sample
-typedef struct {
-        httpd_req_t *req;
-        size_t len;
-} jpg_chunking_t;
 
 #endif // __INC_COMMON_H
