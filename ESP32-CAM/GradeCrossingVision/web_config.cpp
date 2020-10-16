@@ -4,12 +4,12 @@
 #include "camera_index.h"
 #include "web_task.h"
 
-esp_err_t _control_index_handler(httpd_req_t *req){
+esp_err_t __config_index_handler(httpd_req_t *req){
     httpd_resp_set_type(req, "text/html");
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
     sensor_t * s = esp_camera_sensor_get();
     if (s->id.PID != OV2640_PID) {
-      Serial.printf("ERROR Only Sensor OV2640 supported. Instead found OV%02xxx\n", s->id.PID);
+      Serial.printf("[Config] ERROR Only Sensor OV2640 supported. Instead found OV%02xxx\n", s->id.PID);
       httpd_resp_send_500(req);
       return ESP_FAIL;
     }
@@ -26,10 +26,10 @@ static esp_err_t __capture_handler(httpd_req_t *req){
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
 
-  Serial.println("Http: Capture single.");
+  Serial.println("[Config] Capture single.");
   fb = esp_camera_fb_get();
   if (!fb) {
-    Serial.println("Http: esp_camera_fb_get failed");
+    Serial.println("[Config] esp_camera_fb_get failed");
     httpd_resp_send_500(req);
     return ESP_FAIL;
   }
@@ -68,7 +68,7 @@ static esp_err_t __stream_handler(httpd_req_t *req){
     char * part_buf[64];
     int32_t mode = 0;
 
-  Serial.println("Http: Capture stream.");
+  Serial.println("[Config] Capture stream.");
 
     res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
     if(res != ESP_OK){
@@ -81,7 +81,7 @@ static esp_err_t __stream_handler(httpd_req_t *req){
         mode = 0;
         fb = esp_camera_fb_get();
         if (!fb) {
-            Serial.println("ERROR Camera capture failed");
+            Serial.println("[Config] ERROR Camera capture failed");
             res = ESP_FAIL;
         } else {
             mode = 2;
@@ -108,7 +108,7 @@ static esp_err_t __stream_handler(httpd_req_t *req){
             _jpg_buf = NULL;
         }
         if(res != ESP_OK){
-            Serial.println("ERROR stream failed");
+            Serial.println("[Config] ERROR stream failed");
             break;
         }
     }
@@ -119,7 +119,7 @@ static esp_err_t __stream_handler(httpd_req_t *req){
 
 // ----
 
-static esp_err_t __cmd_handler(httpd_req_t *req){
+static esp_err_t __control_handler(httpd_req_t *req){
     char*  buf;
     size_t buf_len;
     char variable[32] = {0,};
@@ -239,12 +239,12 @@ static esp_err_t __status_handler(httpd_req_t *req){
 
 httpd_handle_t gStreamHttpd = NULL;
 
-void _cam_control_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
+void web_config_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
 
-    httpd_uri_t control_index_uri = {
+    httpd_uri_t config_index_uri = {
         .uri       = "/config",
         .method    = HTTP_GET,
-        .handler   = _control_index_handler,
+        .handler   = __config_index_handler,
         .user_ctx  = NULL
     };
   
@@ -255,10 +255,10 @@ void _cam_control_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
         .user_ctx  = NULL
     };
 
-    httpd_uri_t cmd_uri = {
+    httpd_uri_t control_uri = {
         .uri       = "/control",
         .method    = HTTP_GET,
-        .handler   = __cmd_handler,
+        .handler   = __control_handler,
         .user_ctx  = NULL
     };
 
@@ -276,14 +276,14 @@ void _cam_control_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
         .user_ctx  = NULL
     };
 
-    httpd_register_uri_handler(camera_httpd, &control_index_uri);
-    httpd_register_uri_handler(camera_httpd, &cmd_uri);
+    httpd_register_uri_handler(camera_httpd, &config_index_uri);
+    httpd_register_uri_handler(camera_httpd, &control_uri);
     httpd_register_uri_handler(camera_httpd, &status_uri);
     httpd_register_uri_handler(camera_httpd, &capture_uri);
 
     config.server_port += 1;
     config.ctrl_port += 1;
-    Serial.printf("Starting stream server on port: '%d'\n", config.server_port);
+    Serial.printf("[Config] Starting stream server on port: '%d'\n", config.server_port);
     if (httpd_start(&gStreamHttpd, &config) == ESP_OK) {
         httpd_register_uri_handler(gStreamHttpd, &stream_uri);
     }

@@ -9,7 +9,7 @@ void wifi_init(const String &wifiSsid, const String &wifiPass);
 void wifi_loop();
 
 // In web_control.cpp
-void _cam_control_init(httpd_handle_t streamHttpd, httpd_config_t &config);
+void web_config_init(httpd_handle_t streamHttpd, httpd_config_t &config);
 
 // From espressif app_httpd.cpp sample
 typedef struct {

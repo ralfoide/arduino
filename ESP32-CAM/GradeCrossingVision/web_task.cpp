@@ -129,7 +129,7 @@ void _http_start() {
     Serial.println("Http: Started");
     httpd_register_uri_handler(gCameraHttpd, &index_uri);
     httpd_register_uri_handler(gCameraHttpd, &image_uri);
-    _cam_control_init(gCameraHttpd, config);
+    web_config_init(gCameraHttpd, config);
   } else {
     Serial.println("Http: Error starting");
   }
