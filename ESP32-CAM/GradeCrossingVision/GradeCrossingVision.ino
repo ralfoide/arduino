@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <String.h>
 #include <Preferences.h>
+#include <ArduinoOTA.h>
 
 #include "common.h"
 #include "camera_task.h"
@@ -152,6 +153,76 @@ void _sd_read_config() {
   Serial.printf("Wifi pass: %s\n", gPrefWifiPass.c_str());
 }
 
+// ==== OTA ====
+
+#define _OTA_ENABLED 0
+
+#define _OTA_UNSET 0
+#define _OTA_INIT 1
+#define _OTA_IDLE 2
+#define _OTA_UPDATE 3
+int gOtaState = _OTA_UNSET;
+
+bool is_ota_updating() {
+  return gOtaState == _OTA_UPDATE;
+}
+
+void _ota_init() {
+  Serial.println("[OTA] Init");
+  // Source: https://github.com/espressif/arduino-esp32/blob/master/libraries/ArduinoOTA/examples/BasicOTA/BasicOTA.ino
+  
+  ArduinoOTA.setPort(3232); // Port defaults to 3232
+  ArduinoOTA.setHostname("esp32-crossing-cam");
+  //ArduinoOTA.setPassword("admin");
+  ArduinoOTA.setRebootOnSuccess(true);
+
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      gOtaState = _OTA_UPDATE;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("[OTA] Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\n[OTA] End");
+      gOtaState = _OTA_IDLE;
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("[OTA] Progress: %u of %u\n", progress, total);
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("[OTA] Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("[OTA] Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("[OTA] Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("[OTA] Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("[OTA] Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("[OTA] End Failed");
+    });
+
+    gOtaState = _OTA_INIT;
+}
+
+void _ota_begin() {
+  if (gOtaState == _OTA_INIT && is_wifi_connected()) {
+    gOtaState = _OTA_IDLE;
+    Serial.println("[OTA] Begin");
+    ArduinoOTA.begin();
+  }
+}
+
+void _ota_loop() {
+  if (gOtaState == _OTA_INIT) {
+    _ota_begin();
+  } else if (gOtaState > _OTA_INIT) {
+    ArduinoOTA.handle();
+  }
+}
+
 // ==== Setup/Loop ====
 
 void setup() {
@@ -168,15 +239,26 @@ void setup() {
   _prefs_read();
   _sd_init();
   _sd_read_config();
-  camera_task_init();
+  //--camera_task_init();
   wifi_init(gPrefWifiSsid, gPrefWifiPass);
+  #if _OTA_ENABLED
+    _ota_init();
+  #endif
 }
 
+int __led_blink_ms = 0;
 void loop() {
-  // put your main code here, to run repeatedly:
-  delay(1000);
-  Serial.println("Loop");
+  unsigned long currentMillis = millis();
+
   wifi_loop();
-  _blink();
+  _ota_loop();
+
+  if (gOtaState != _OTA_UPDATE) {
+    delay(100);
+    if (currentMillis - __led_blink_ms > 1000 /* ms */) {
+      __led_blink_ms = currentMillis;
+      _blink();
+    }
+  }
 }
 

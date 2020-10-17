@@ -1,5 +1,9 @@
-#include "shared_buf.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #include <HardwareSerial.h>
+
+#include "shared_buf.h"
 
 struct QMsg {
     void* data;

@@ -74,11 +74,14 @@ void _camera_task(void *taskParameters) {
     gSharedCamImg = new SharedBuf(gCameraTask, 1);
 
     for (;;) {
-        _grab_camera_frame();
+        if (!is_ota_updating()) {
+            _grab_camera_frame();
+        }
 
         int64_t fr_start = esp_timer_get_time();
-    //     delay(10000);    // TODO change
-    //    Serial.printf("Camera Task Loop running on Core %d\n", xPortGetCoreID());
+        rtDelay(2000);    // TODO change
+
+        Serial.printf("[Camera] Task Loop running on Core %d\n", xPortGetCoreID());
     }
 }
 

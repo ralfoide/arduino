@@ -7,6 +7,7 @@
 // In web_task.cpp
 void wifi_init(const String &wifiSsid, const String &wifiPass);
 void wifi_loop();
+bool is_wifi_connected();
 
 // In web_control.cpp
 void web_config_init(httpd_handle_t streamHttpd, httpd_config_t &config);

@@ -21,15 +21,15 @@ uint32_t gStatDeltaSendMs = 0;
 
 
 size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len) {
-    jpg_chunking_t *j = (jpg_chunking_t *)arg;
-    if (!index) {
-        j->len = 0;
-    }
-    if (httpd_resp_send_chunk(j->req, (const char *)data, len) != ESP_OK) {
-        return 0;
-    }
-    j->len += len;
-    return len;
+  jpg_chunking_t *j = (jpg_chunking_t *)arg;
+  if (!index) {
+    j->len = 0;
+  }
+  if (httpd_resp_send_chunk(j->req, (const char *)data, len) != ESP_OK) {
+    return 0;
+  }
+  j->len += len;
+  return len;
 }
 
 esp_err_t _image_handler(httpd_req_t *req) {
@@ -139,6 +139,10 @@ void _http_start() {
 
 bool gWifiConnected;
 
+bool is_wifi_connected() {
+  return gWifiConnected;
+}
+
 void wifi_init(const String &wifiSsid, const String &wifiPass) {
   WiFi.begin(wifiSsid.c_str(), wifiPass.c_str());
   gWifiConnected = false;
@@ -152,7 +156,7 @@ void wifi_loop() {
       gWifiConnected = true;
       Serial.printf("Wifi connected at http://%s port %d\n",
         WiFi.localIP().toString().c_str(),
-        HTTP_PORT);
+      HTTP_PORT);
       _http_start();
     }
   } else {
