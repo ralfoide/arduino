@@ -14,8 +14,8 @@ void web_config_init(httpd_handle_t streamHttpd, httpd_config_t &config);
 
 // From espressif app_httpd.cpp sample
 typedef struct {
-        httpd_req_t *req;
-        size_t len;
+    httpd_req_t *req;
+    size_t len;
 } jpg_chunking_t;
 
 #endif // __INC_WEB_TASK_H

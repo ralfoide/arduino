@@ -60,21 +60,21 @@ void _esp_camera_init() {
 }
 
 void _grab_camera_frame() {
-  camera_fb_t * fb = NULL;
-  fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("[Camera] esp_camera_fb_get failed");
-    return;
-  }
+    camera_fb_t *fb = NULL;
+    fb = esp_camera_fb_get();
+    if (!fb) {
+        Serial.println("[Camera] esp_camera_fb_get failed");
+        return;
+    }
 
     int64_t fr_start = esp_timer_get_time();
 
-  esp_camera_fb_return(fb);
+    esp_camera_fb_return(fb);
 }
 
 void _camera_task(void *taskParameters) {
     Serial.printf("[Camera] Task running on Core %d\n", xPortGetCoreID());
-    
+
     gSharedCamImg = new SharedBuf(gCameraTask, 1);
 
     for (;;) {
@@ -82,7 +82,7 @@ void _camera_task(void *taskParameters) {
             _grab_camera_frame();
         }
 
-        rtDelay(2000);    // TODO change
+        rtDelay(2000);  // TODO change
 
         Serial.printf("[Camera] Task Loop running on Core %d\n", xPortGetCoreID());
     }
@@ -91,21 +91,21 @@ void _camera_task(void *taskParameters) {
 void camera_task_init() {
     _esp_camera_init();
 
-    #if CONFIG_CAMERA_CORE0
-        Serial.println("[Camera] ESP32-Camera task is pinned Core 0.");
-    #elif CONFIG_CAMERA_CORE1
-        Serial.println("[Camera] ESP32-Camera task is pinned Core 1.");
-    #else
-        Serial.println("[Camera] ESP32-Camera task has no core affinity.");
-    #endif
+#if CONFIG_CAMERA_CORE0
+    Serial.println("[Camera] ESP32-Camera task is pinned Core 0.");
+#elif CONFIG_CAMERA_CORE1
+    Serial.println("[Camera] ESP32-Camera task is pinned Core 1.");
+#else
+    Serial.println("[Camera] ESP32-Camera task has no core affinity.");
+#endif
 
     if (xTaskCreatePinnedToCore(
-            _camera_task,           // pvTaskCode,
-            "CameraTask",           // pcName (16 char max),
-            4096,                   // usStackDepth in bytes
-            NULL,                   // pvParameters,
-            0,                      // uxPriority, from 0 to configMAX_PRIORITIES
-            &gCameraTask,           // pvCreatedTask
+            _camera_task,  // pvTaskCode,
+            "CameraTask",  // pcName (16 char max),
+            4096,          // usStackDepth in bytes
+            NULL,          // pvParameters,
+            0,             // uxPriority, from 0 to configMAX_PRIORITIES
+            &gCameraTask,  // pvCreatedTask
             PRO_CPU /*tskNO_AFFINITY*/) != pdPASS) {
         Serial.println("[Camera] FATAL: Camera xTaskCreate failed.");
     } else {
