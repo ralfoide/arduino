@@ -283,8 +283,10 @@ void web_config_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
 
     config.server_port += 1;
     config.ctrl_port += 1;
-    Serial.printf("[Config] Starting stream server on port: '%d'\n", config.server_port);
     if (httpd_start(&gStreamHttpd, &config) == ESP_OK) {
+    Serial.printf("[Config] Starting stream server on port %d, handle %p\n", config.server_port, gStreamHttpd);
         httpd_register_uri_handler(gStreamHttpd, &stream_uri);
+    } else {
+        Serial.println("[Config] Error starting stream server");
     }
 }

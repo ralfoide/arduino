@@ -239,7 +239,7 @@ void setup() {
   _prefs_read();
   _sd_init();
   _sd_read_config();
-  //--camera_task_init();
+  camera_task_init();
   wifi_init(gPrefWifiSsid, gPrefWifiPass);
   #if _OTA_ENABLED
     _ota_init();

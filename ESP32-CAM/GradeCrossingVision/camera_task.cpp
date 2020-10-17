@@ -66,6 +66,10 @@ void _grab_camera_frame() {
     Serial.println("[Camera] esp_camera_fb_get failed");
     return;
   }
+
+    int64_t fr_start = esp_timer_get_time();
+
+  esp_camera_fb_return(fb);
 }
 
 void _camera_task(void *taskParameters) {
@@ -78,7 +82,6 @@ void _camera_task(void *taskParameters) {
             _grab_camera_frame();
         }
 
-        int64_t fr_start = esp_timer_get_time();
         rtDelay(2000);    // TODO change
 
         Serial.printf("[Camera] Task Loop running on Core %d\n", xPortGetCoreID());

@@ -36,10 +36,10 @@ esp_err_t _image_handler(httpd_req_t *req) {
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
 
-  Serial.printf("Http: Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
+  Serial.printf("[HTTP] Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
   fb = esp_camera_fb_get();
   if (!fb) {
-    Serial.println("Http: esp_camera_fb_get failed");
+    Serial.println("[HTTP] esp_camera_fb_get failed");
     httpd_resp_send_500(req);
     return ESP_FAIL;
   }
@@ -71,7 +71,7 @@ esp_err_t _image_handler(httpd_req_t *req) {
   }
   gStatLastCaptureTs = fr_start;
   gStatDeltaSendMs = (uint32_t)((fr_end - fr_start)/1000);
-  Serial.printf("Http JPG: fmt=%d len=%u B grab=%u ms send=%u ms\n",
+  Serial.printf("[HTTP] JPG: fmt=%d len=%u B grab=%u ms send=%u ms\n",
     fb_format,
     (uint32_t)(fb_len),
     gStatDeltaGrabMs,
@@ -87,7 +87,7 @@ esp_err_t _index_handler(httpd_req_t *req) {
   sensor_t * s = esp_camera_sensor_get();
   char *p = buf;
 
-  Serial.printf("Http: Index cnx started. Wifi RSSI %d, Core %d\n", WiFi.RSSI(), xPortGetCoreID());
+  Serial.printf("[HTTP] Index cnx started. Wifi RSSI %d, Core %d\n", WiFi.RSSI(), xPortGetCoreID());
 
   p += sprintf(p, "<html><head><meta http-equiv=\"refresh\" content=\"1\"></head><body>\n");
   p += sprintf(p, "<p>Sensor: OV%02xxx\n", s->id.PID);
@@ -98,7 +98,7 @@ esp_err_t _index_handler(httpd_req_t *req) {
 
   size_t len = strlen(buf);
   if (len >= HTTP_BUF_LEN) {
-    Serial.printf("ERROR BUFFER OVERFLOW. Increase HTML buf from %d to %d <<<<<\n", HTTP_BUF_LEN, len);
+    Serial.printf("[HTTP] ERROR BUFFER OVERFLOW. Increase HTML buf from %d to %d <<<<<\n", HTTP_BUF_LEN, len);
     httpd_resp_send_500(req);
     return ESP_FAIL;
   }
@@ -126,12 +126,12 @@ void _http_start() {
   };
 
   if (httpd_start(&gCameraHttpd, &config) == ESP_OK) {
-    Serial.println("Http: Started");
+    Serial.printf("[HTTP] Started on port %d, httpd %p\n", config.server_port, gCameraHttpd);
     httpd_register_uri_handler(gCameraHttpd, &index_uri);
     httpd_register_uri_handler(gCameraHttpd, &image_uri);
     web_config_init(gCameraHttpd, config);
   } else {
-    Serial.println("Http: Error starting");
+    Serial.println("[HTTP] Error starting");
   }
 }
 
@@ -154,9 +154,9 @@ void wifi_loop() {
       Serial.print(".");
     } else {
       gWifiConnected = true;
-      Serial.printf("Wifi connected at http://%s port %d\n",
+      Serial.printf("\nWifi connected at http://%s port %d\n",
         WiFi.localIP().toString().c_str(),
-      HTTP_PORT);
+        HTTP_PORT);
       _http_start();
     }
   } else {
