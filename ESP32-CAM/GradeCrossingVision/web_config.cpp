@@ -27,7 +27,7 @@ static esp_err_t __capture_handler(httpd_req_t *req) {
     esp_err_t res = ESP_OK;
 
     Serial.println("[Config] Capture single.");
-    fb = esp_camera_fb_get();
+    fb = web_get_fb(250 /*ms*/);
     if (!fb) {
         Serial.println("[Config] esp_camera_fb_get failed");
         httpd_resp_send_500(req);
@@ -49,7 +49,7 @@ static esp_err_t __capture_handler(httpd_req_t *req) {
         httpd_resp_send_chunk(req, NULL, 0);
         fb_len = jchunk.len;
     }
-    esp_camera_fb_return(fb);
+    web_release_fb(fb);
 
     return res;
 }
@@ -78,7 +78,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
 
     while (true) {
         mode = 0;
-        fb = esp_camera_fb_get();
+        fb = web_get_fb(250 /*ms*/);
         if (!fb) {
             Serial.println("[Config] ERROR Camera capture failed");
             res = ESP_FAIL;
@@ -99,7 +99,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
             res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
         }
         if (fb) {
-            esp_camera_fb_return(fb);
+            web_release_fb(fb);
             fb = NULL;
             _jpg_buf = NULL;
         } else if (_jpg_buf) {
@@ -130,6 +130,7 @@ static esp_err_t __control_handler(httpd_req_t *req) {
     buf_len = httpd_req_get_url_query_len(req) + 1;
     if (buf_len > 1) {
         buf = (char *)malloc(buf_len);
+        assert(buf != NULL);
         if (!buf) {
             httpd_resp_send_500(req);
             return ESP_FAIL;

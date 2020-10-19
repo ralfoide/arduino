@@ -149,7 +149,7 @@ void _sd_read_config() {
     _flash(0);
 
     Serial.printf("Wifi ssid: %s\n", gPrefWifiSsid.c_str());
-    Serial.printf("Wifi pass: %s\n", gPrefWifiPass.c_str());
+    //--(debug only)--Serial.printf("Wifi pass: %s\n", gPrefWifiPass.c_str());
 }
 
 // ==== OTA ====
@@ -262,9 +262,10 @@ void loop() {
 
     if (gOtaState != _OTA_UPDATE) {
         delay(100);
-        if (currentMillis - __led_blink_ms > 1000 /* ms */) {
+        if (currentMillis - __led_blink_ms >= 1000 /* ms */) {
             __led_blink_ms = currentMillis;
             _blink();
+            cam_print_stats();
         }
     }
 }

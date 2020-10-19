@@ -5,6 +5,20 @@
 		}
 	],
 	"settings": {
-		"C_Cpp.clang_format_fallbackStyle": "LLVM"
+		"C_Cpp.clang_format_fallbackStyle": "LLVM",
+		"files.associations": {
+			"memory": "cpp",
+			"mutex": "cpp",
+			"shared_mutex": "cpp",
+			"functional": "cpp",
+			"optional": "cpp",
+			"system_error": "cpp",
+			"type_traits": "cpp",
+			"xtr1common": "cpp",
+			"ratio": "cpp",
+			"array": "cpp",
+			"tuple": "cpp",
+			"utility": "cpp"
+		}
 	}
 }

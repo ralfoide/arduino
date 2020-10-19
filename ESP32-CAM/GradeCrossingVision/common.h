@@ -4,7 +4,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define rtDelay(ms) { vTaskDelay((ms) / portTICK_PERIOD_MS); } // delay in mS
+#define MS_TO_TICKS(ms) ((ms) / portTICK_PERIOD_MS)
+#define rtDelay(ms) { vTaskDelay( MS_TO_TICKS(ms) ); } // delay in mS
 
 // CPU affinity for ESP32
 #define PRO_CPU 0

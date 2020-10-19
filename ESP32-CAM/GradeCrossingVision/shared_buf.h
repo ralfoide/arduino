@@ -16,7 +16,7 @@ public:
     // Camera task API
     bool queueIsEmpty();
     bool getAndResetRequest();
-    void send(void *data);
+    bool send(void *data);
 
 private:
     TaskHandle_t mCameraTask;

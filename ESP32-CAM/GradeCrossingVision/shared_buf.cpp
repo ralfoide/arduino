@@ -26,6 +26,7 @@ SharedBuf::SharedBuf(TaskHandle_t camera_task_handle, uint32_t request_bit) {
 // --- Web handler API ---
 
 void SharedBuf::request() {
+    // Serial.printf("SharedBuf::request val=%04d\n", mRequestBit);
     xTaskNotify(mCameraTask, mRequestBit, eSetBits);
 }
 
@@ -35,14 +36,17 @@ void* SharedBuf::receive(TickType_t ticks_to_wait) {
             mDataQueue,  // xQueue,
             &msg,        // pvBuffer,
             ticks_to_wait) == pdTRUE) {
+        Serial.printf("SharedBuf::receive: %p\n", msg.data);
         return msg.data;
     }
+    // Serial.printf("SharedBuf::receive: %p\n", NULL);
     return NULL;
 }
 
 // --- Camera task API ---
 
 bool SharedBuf::queueIsEmpty() {
+    // Serial.printf("SharedBuf::queueIsEmpty: %d\n", (uxQueueSpacesAvailable(mDataQueue) > 0));
     return uxQueueSpacesAvailable(mDataQueue) > 0;
 }
 
@@ -54,19 +58,22 @@ bool SharedBuf::getAndResetRequest() {
             &value,       // pulNotificationValue,
             0             // xTicksToWait
             ) == pdPASS) {
+        // Serial.printf("SharedBuf::getAndResetRequest: val=%04x\n", value);
         return (value & mRequestBit) != 0;
     }
 
+        // Serial.printf("SharedBuf::getAndResetRequest: FALSE\n");
     return false;
 }
 
-void SharedBuf::send(void* data) {
+bool SharedBuf::send(void* data) {
     QMsg msg;
     msg.data = data;
 
-    xQueueSend(
+    Serial.printf("SharedBuf::send: data=%p\n", msg.data);
+    return xQueueSend(
         mDataQueue,  // xQueue,
         &msg,        // pvItemToQueue,
-        0            // xTicksToWait
-    );
+        1            // xTicksToWait
+    ) == pdTRUE;
 }

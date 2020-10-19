@@ -9,7 +9,11 @@ void wifi_init(const String &wifiSsid, const String &wifiPass);
 void wifi_loop();
 bool is_wifi_connected();
 
-// In web_control.cpp
+// Synchronous access to the shared camera task buffer
+camera_fb_t *web_get_fb(int timeout_ms);
+void web_release_fb(camera_fb_t *fb);
+
+// In web_config.cpp
 void web_config_init(httpd_handle_t streamHttpd, httpd_config_t &config);
 
 // From espressif app_httpd.cpp sample
