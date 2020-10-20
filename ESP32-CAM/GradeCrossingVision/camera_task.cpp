@@ -14,17 +14,21 @@ SharedBuf *gSharedCamImg = NULL;
 long __frame_last_ms = 0;
 int __frame_delta_ms = 0;
 int __process_delta_ms = 0;
+int __process_malloc_ms = 0;
+int __process_copy_ms = 0;
 int __frame_grab_count = 0;
 int __frame_share_count = 0;
 int __frame_convert_count = 0;
 
 void cam_print_stats() {
-    Serial.printf("[Camera] Grb:%4d @ %2d ms > Cvt:%4d > Shr:%4d @ %2d ms | Mem Int %ld B, Ext %ld B\n",
+    Serial.printf("[Camera] Grb:%4d @ %2d ms > Cvt:%4d > Shr:%4d @ %2d [%d + %d] ms | Mem Int %ld B, Ext %ld B\n",
                   __frame_grab_count,
                   __frame_delta_ms,
                   __frame_convert_count,
                   __frame_share_count,
                   __process_delta_ms,
+                  __process_malloc_ms,
+                  __process_copy_ms,
                   heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                   heap_caps_get_free_size(MALLOC_CAP_SPIRAM)
                   );
@@ -109,23 +113,30 @@ public:
         }
     }
 
-    // Unpacks the JPEG data into an RGB buffer.
-    // Note: JPEG frame buffer is not freed yet.
     void convert() {
         if (fb == NULL) return;
 
-        size_t len = fb->width * fb->height * 3;
-        img_rgb = (uint8_t *) heap_caps_malloc(len, MALLOC_CAP_SPIRAM);
-        if (!img_rgb) {
-            Serial.printf("[Camera] malloc %ld bytes failed\n", len);
-            heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
-            heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-        }
-        assert(img_rgb != NULL);
+        if (fb->format == PIXFORMAT_JPEG) {
+            // Unpacks the JPEG data into an RGB buffer.
+            // Note: JPEG frame buffer is freed by ~CamFrame (end of scaope in camera task loop).
 
-        if (!fmt2rgb888(fb->buf, fb->len, fb->format, img_rgb)) {
-            Serial.println("[Camera] fmt2rgb888 failed");
-            return;
+            long ms1 = millis();
+            size_t len = fb->width * fb->height * 3;
+            img_rgb = (uint8_t *) heap_caps_malloc(len, MALLOC_CAP_SPIRAM);
+            long ms2 = millis();
+            __process_malloc_ms = ms2 - ms1;
+            if (!img_rgb) {
+                Serial.printf("[Camera] malloc %ld bytes failed\n", len);
+                heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
+                heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
+            }
+            assert(img_rgb != NULL);
+
+            if (!fmt2rgb888(fb->buf, fb->len, fb->format, img_rgb)) {
+                Serial.println("[Camera] fmt2rgb888 failed");
+                return;
+            }
+            __process_copy_ms = millis() - ms2;
         }
 
         // TBD: We don't currently use the unpacked RGB buffer for anything.
@@ -138,7 +149,7 @@ public:
 
         if (gSharedCamImg->queueIsEmpty() && gSharedCamImg->getAndResetRequest()) {
             camera_fb_t *fb2 = cam_dup_fb(fb);
-            Serial.printf("[cam] SEND    fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb2, fb2->width, fb2->height, fb2->format, fb2->len, fb2->buf);
+            // Serial.printf("[cam] SEND    fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb2, fb2->width, fb2->height, fb2->format, fb2->len, fb2->buf);
             if (gSharedCamImg->send(fb2)) {
                 __frame_share_count++;
             } else {
@@ -159,7 +170,7 @@ void _camera_task(void *taskParameters) {
             // Note: all resources get deallocated when exiting this scope (RAII).
             CamFrame f = CamFrame();
             if (f.grab()) {
-                //--f.convert(); --> 1.2sec
+                f.convert(); // SVGA --> 1.2sec
                 f.share();
                 __process_delta_ms = millis() - __frame_last_ms;
             }
@@ -187,8 +198,9 @@ void _esp_camera_init() {
     config.pin_sscb_scl = SIOC_GPIO_NUM;
     config.pin_pwdn = PWDN_GPIO_NUM;
     config.pin_reset = RESET_GPIO_NUM;
-    config.xclk_freq_hz = 20000000;
+    config.xclk_freq_hz = 20000000; // 20 MHz
     config.pixel_format = PIXFORMAT_JPEG;
+    //-- config.pixel_format = PIXFORMAT_GRAYSCALE;
 
     //init with high specs to pre-allocate larger buffers
     if (psramFound()) {
@@ -197,7 +209,8 @@ void _esp_camera_init() {
         Serial.println("[Camera] ERROR PSRAM not found.");
     }
 
-    config.frame_size = FRAMESIZE_SVGA;
+    config.frame_size = FRAMESIZE_SVGA;  // 800x600
+    config.frame_size = FRAMESIZE_CIF;   // 400x296
     config.jpeg_quality = 10;
     config.fb_count = 2;
 

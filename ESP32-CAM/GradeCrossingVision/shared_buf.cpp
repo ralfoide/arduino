@@ -36,7 +36,7 @@ void* SharedBuf::receive(TickType_t ticks_to_wait) {
             mDataQueue,  // xQueue,
             &msg,        // pvBuffer,
             ticks_to_wait) == pdTRUE) {
-        Serial.printf("SharedBuf::receive: %p\n", msg.data);
+        // Serial.printf("SharedBuf::receive: %p\n", msg.data);
         return msg.data;
     }
     // Serial.printf("SharedBuf::receive: %p\n", NULL);
@@ -70,7 +70,7 @@ bool SharedBuf::send(void* data) {
     QMsg msg;
     msg.data = data;
 
-    Serial.printf("SharedBuf::send: data=%p\n", msg.data);
+    // Serial.printf("SharedBuf::send: data=%p\n", msg.data);
     return xQueueSend(
         mDataQueue,  // xQueue,
         &msg,        // pvItemToQueue,

@@ -27,10 +27,10 @@ camera_fb_t *web_get_fb(int timeout_ms) {
 
   sharedBufImg->request();
   void *data = sharedBufImg->receive( MS_TO_TICKS(timeout_ms) );
-  Serial.printf("[web] web_get_fb data = %p\n", data);
+  // Serial.printf("[web] web_get_fb data = %p\n", data);
   if (data != NULL) {
     camera_fb_t *fb = (camera_fb_t *) data;
-    Serial.printf("[web] RECEIVE fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb, fb->width, fb->height, fb->format, fb->len, fb->buf);
+    // Serial.printf("[web] RECEIVE fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb, fb->width, fb->height, fb->format, fb->len, fb->buf);
   }
   return (camera_fb_t *) data;
 }
