@@ -1,6 +1,6 @@
+#include <esp_task_wdt.h>
 #include <esp_camera.h>
 #include <img_converters.h>
-// #include <dl_lib_matrix3d.h>
 
 #include <HardwareSerial.h>
 
@@ -165,6 +165,13 @@ void _camera_task(void *taskParameters) {
 
     gSharedCamImg = new SharedBuf(gCameraTask, 1);
 
+    esp_err_t err = esp_task_wdt_add(gCameraTask);
+    if (err != ESP_OK) {
+        Serial.printf("[Camera] Failed to add watchdog: err=%d\n", err);
+    } else {
+        Serial.printf("[Camera] Watchdog set %d\n", err); // -- timeouts = %d seconds\n", CONFIG_ESP_TASK_WDT_TIMEOUT_S);
+    }
+
     for (;;) {
         if (!is_ota_updating()) {
             // Note: all resources get deallocated when exiting this scope (RAII).
@@ -175,6 +182,10 @@ void _camera_task(void *taskParameters) {
                 __process_delta_ms = millis() - __frame_last_ms;
             }
         }
+
+        // Reset watchdog for this task, and leave the idle task some time to process.
+        err = esp_task_wdt_reset();
+        rtDelay(1);
     }
 }
 
@@ -245,7 +256,7 @@ void camera_task_init() {
             "CameraTask",  // pcName (16 char max),
             4096,          // usStackDepth in bytes
             NULL,          // pvParameters,
-            0,             // uxPriority, from 0 to configMAX_PRIORITIES
+            1,             // uxPriority, from 0 to configMAX_PRIORITIES
             &gCameraTask,  // pvCreatedTask
             PRO_CPU /*tskNO_AFFINITY*/) != pdPASS) {
         Serial.println("[Camera] FATAL: Camera xTaskCreate failed.");
