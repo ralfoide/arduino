@@ -211,7 +211,12 @@ void _esp_camera_init() {
     config.pin_reset = RESET_GPIO_NUM;
     config.xclk_freq_hz = 20000000; // 20 MHz
     config.pixel_format = PIXFORMAT_JPEG;
-    //-- config.pixel_format = PIXFORMAT_GRAYSCALE;
+    //config.pixel_format = PIXFORMAT_GRAYSCALE;
+    //config.pixel_format = PIXFORMAT_RGB565; // fails
+    //config.pixel_format = PIXFORMAT_YUV422; // fails
+    //config.pixel_format = PIXFORMAT_RGB444; // not supported
+    //config.pixel_format = PIXFORMAT_RGB555;
+    //config.pixel_format = PIXFORMAT_RGB888;
 
     //init with high specs to pre-allocate larger buffers
     if (psramFound()) {
@@ -220,7 +225,7 @@ void _esp_camera_init() {
         Serial.println("[Camera] ERROR PSRAM not found.");
     }
 
-    config.frame_size = FRAMESIZE_SVGA;  // 800x600
+    //config.frame_size = FRAMESIZE_SVGA;  // 800x600
     config.frame_size = FRAMESIZE_CIF;   // 400x296
     config.jpeg_quality = 10;
     config.fb_count = 2;

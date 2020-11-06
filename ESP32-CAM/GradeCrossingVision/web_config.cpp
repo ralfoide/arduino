@@ -19,7 +19,7 @@ esp_err_t __config_index_handler(httpd_req_t *req) {
     return httpd_resp_send(req, (const char *)index_ov2640_html_gz, index_ov2640_html_gz_len);
 }
 
-// Implemented in the ino file
+// Implemented in web_task.cpp
 size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len);
 
 static esp_err_t __capture_handler(httpd_req_t *req) {
@@ -38,16 +38,12 @@ static esp_err_t __capture_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    size_t fb_len = 0;
-    pixformat_t fb_format = fb->format;
     if (fb->format == PIXFORMAT_JPEG) {
-        fb_len = fb->len;
         res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
     } else {
         jpg_chunking_t jchunk = {req, 0};
         res = frame2jpg_cb(fb, 80, _jpg_encode_stream, &jchunk) ? ESP_OK : ESP_FAIL;
-        httpd_resp_send_chunk(req, NULL, 0);
-        fb_len = jchunk.len;
+        httpd_resp_send_chunk(req, NULL, 0); // this frees the buffers used by _jpg_encode_stream
     }
     web_release_fb(fb);
 
@@ -65,7 +61,6 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
     size_t _jpg_buf_len = 0;
     uint8_t *_jpg_buf = NULL;
     char *part_buf[64];
-    int32_t mode = 0;
 
     Serial.println("[Config] Capture stream.");
 
@@ -77,15 +72,23 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
     while (true) {
-        mode = 0;
         fb = web_get_fb(250 /*ms*/);
         if (!fb) {
             Serial.println("[Config] ERROR Camera capture failed");
             res = ESP_FAIL;
         } else {
-            mode = 2;
-            _jpg_buf_len = fb->len;
-            _jpg_buf = fb->buf;
+            if (fb->format == PIXFORMAT_JPEG) {
+                _jpg_buf_len = fb->len;
+                _jpg_buf = fb->buf;
+            } else {
+                bool jpeg_converted = frame2jpg(fb, 80, &_jpg_buf, &_jpg_buf_len);
+                web_release_fb(fb);
+                fb = NULL;
+                if (!jpeg_converted) {
+                    Serial.println("[Config] Stream JPEG compression failed");
+                    res = ESP_FAIL;
+                }
+            }
         }
 
         if (res == ESP_OK) {
@@ -102,7 +105,8 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
             web_release_fb(fb);
             fb = NULL;
             _jpg_buf = NULL;
-        } else if (_jpg_buf) {
+        }
+        if (_jpg_buf) {
             free(_jpg_buf);
             _jpg_buf = NULL;
         }
