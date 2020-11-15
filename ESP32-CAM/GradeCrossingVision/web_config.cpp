@@ -2,6 +2,8 @@
 #include <esp_http_server.h>
 #include <HardwareSerial.h>
 #include "camera_index.h"
+#include "shared_buf.h"
+#include "cam_frame.h"
 #include "web_task.h"
 
 esp_err_t __config_index_handler(httpd_req_t *req) {
@@ -23,13 +25,14 @@ esp_err_t __config_index_handler(httpd_req_t *req) {
 size_t _jpg_encode_stream(void * arg, size_t index, const void* data, size_t len);
 
 static esp_err_t __capture_handler(httpd_req_t *req) {
-    camera_fb_t *fb = NULL;
+    CamFrameP frame = NULL;
     esp_err_t res = ESP_OK;
 
     Serial.println("[Config] Capture single.");
-    fb = web_get_fb(250 /*ms*/);
-    if (!fb) {
+    frame = web_get_frame(250 /*ms*/);
+    if (!frame || !frame->fb()) {
         Serial.println("[Config] esp_camera_fb_get failed");
+        frame = web_release_frame(frame);
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -38,14 +41,14 @@ static esp_err_t __capture_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    if (fb->format == PIXFORMAT_JPEG) {
-        res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
+    if (frame->fb()->format == PIXFORMAT_JPEG) {
+        res = httpd_resp_send(req, (const char *)frame->fb()->buf, frame->fb()->len);
     } else {
         jpg_chunking_t jchunk = {req, 0};
-        res = frame2jpg_cb(fb, 80, _jpg_encode_stream, &jchunk) ? ESP_OK : ESP_FAIL;
+        res = frame2jpg_cb(frame->fb(), 80, _jpg_encode_stream, &jchunk) ? ESP_OK : ESP_FAIL;
         httpd_resp_send_chunk(req, NULL, 0); // this frees the buffers used by _jpg_encode_stream
     }
-    web_release_fb(fb);
+    frame = web_release_frame(frame);
 
     return res;
 }
@@ -56,7 +59,7 @@ static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
 static esp_err_t __stream_handler(httpd_req_t *req) {
-    camera_fb_t *fb = NULL;
+    CamFrameP frame = NULL;
     esp_err_t res = ESP_OK;
     size_t _jpg_buf_len = 0;
     uint8_t *_jpg_buf = NULL;
@@ -72,18 +75,18 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
     while (true) {
-        fb = web_get_fb(250 /*ms*/);
-        if (!fb) {
+        frame = web_get_frame(250 /*ms*/);
+        if (!frame || !frame->fb()) {
             Serial.println("[Config] ERROR Camera capture failed");
+            frame = web_release_frame(frame);
             res = ESP_FAIL;
         } else {
-            if (fb->format == PIXFORMAT_JPEG) {
-                _jpg_buf_len = fb->len;
-                _jpg_buf = fb->buf;
+            if (frame->fb()->format == PIXFORMAT_JPEG) {
+                _jpg_buf_len = frame->fb()->len;
+                _jpg_buf = frame->fb()->buf;
             } else {
-                bool jpeg_converted = frame2jpg(fb, 80, &_jpg_buf, &_jpg_buf_len);
-                web_release_fb(fb);
-                fb = NULL;
+                bool jpeg_converted = frame2jpg(frame->fb(), 80, &_jpg_buf, &_jpg_buf_len);
+                frame = web_release_frame(frame);
                 if (!jpeg_converted) {
                     Serial.println("[Config] Stream JPEG compression failed");
                     res = ESP_FAIL;
@@ -101,9 +104,8 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
         if (res == ESP_OK) {
             res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
         }
-        if (fb) {
-            web_release_fb(fb);
-            fb = NULL;
+        if (frame) {
+            frame = web_release_frame(frame);
             _jpg_buf = NULL;
         }
         if (_jpg_buf) {

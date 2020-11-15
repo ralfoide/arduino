@@ -18,7 +18,18 @@
 			"ratio": "cpp",
 			"array": "cpp",
 			"tuple": "cpp",
-			"utility": "cpp"
+			"utility": "cpp",
+			"vector": "cpp",
+			"algorithm": "cpp",
+			"atomic": "cpp",
+			"condition_variable": "cpp",
+			"fstream": "cpp",
+			"thread": "cpp",
+			"xhash": "cpp",
+			"xlocale": "cpp",
+			"xmemory": "cpp",
+			"xstring": "cpp",
+			"xutility": "cpp"
 		}
 	}
 }

@@ -5,37 +5,34 @@
 #include <HardwareSerial.h>
 
 #include "common.h"
-#include "camera_task.h"
+#include "cam_stats.h"
 #include "shared_buf.h"
+#include "cam_frame.h"
+#include "cam_frame_pool.h"
+#include "camera_task.h"
 
 TaskHandle_t gCameraTask = NULL;
-SharedBuf *gSharedCamImg = NULL;
+SharedBufT<CamFrameP> *gSharedCamImg = NULL;
+CamStats gCamStats = {0, 0, 0, 0, 0, 0, 0, 0};
 
-long __frame_last_ms = 0;
-int __frame_delta_ms = 0;
-int __process_delta_ms = 0;
-int __process_malloc_ms = 0;
-int __process_copy_ms = 0;
-int __frame_grab_count = 0;
-int __frame_share_count = 0;
-int __frame_convert_count = 0;
 
 void cam_print_stats() {
     Serial.printf("[Camera] Grb:%4d @ %2d ms > Cvt:%4d > Shr:%4d @ %2d [%d + %d] ms | Mem Int %ld B, Ext %ld B\n",
-                  __frame_grab_count,
-                  __frame_delta_ms,
-                  __frame_convert_count,
-                  __frame_share_count,
-                  __process_delta_ms,
-                  __process_malloc_ms,
-                  __process_copy_ms,
+                  gCamStats.__frame_grab_count,
+                  gCamStats.__frame_delta_ms,
+                  gCamStats.__frame_convert_count,
+                  gCamStats.__frame_share_count,
+                  gCamStats.__process_delta_ms,
+                  gCamStats.__process_malloc_ms,
+                  gCamStats.__process_copy_ms,
                   heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                   heap_caps_get_free_size(MALLOC_CAP_SPIRAM)
                   );
 }
 
-SharedBuf *cam_shared_img() { return gSharedCamImg; }
+SharedBufT<CamFrameP> *cam_shared_img() { return gSharedCamImg; }
 
+// Deprecated
 camera_fb_t *cam_dup_fb(camera_fb_t *src) {
     // Serial.printf("[cam] cam_dup_fb fb %p", src);
     assert(src != NULL);
@@ -56,6 +53,7 @@ camera_fb_t *cam_dup_fb(camera_fb_t *src) {
     return dst;
 }
 
+// Deprecated?
 void cam_free_fb(camera_fb_t *fb) {
     if (fb == NULL) return;
     if (fb->buf) {
@@ -65,105 +63,11 @@ void cam_free_fb(camera_fb_t *fb) {
     free(fb);
 }
 
-class CamFrame {
-private:
-    camera_fb_t *fb;
-    uint8_t *img_rgb;
-
-public:
-    CamFrame() : 
-        fb(NULL),
-        img_rgb(NULL) {
-    }
-
-    ~CamFrame() {
-        // Important. We must not leave this without releasing the frame buffer.
-        release_fb();
-        release_img();
-    }
-
-    bool grab() {
-        fb = esp_camera_fb_get();
-        if (!fb) {
-            Serial.println("[Camera] esp_camera_fb_get failed");
-        }
-
-        __frame_grab_count++;
-
-        long ms = millis();
-        if (__frame_last_ms != 0) {
-            __frame_delta_ms = ms - __frame_last_ms;
-        }
-        __frame_last_ms = ms;
-
-        return fb != NULL;
-    }
-
-    void release_fb() {
-        if (fb) {
-            esp_camera_fb_return(fb);
-            fb = NULL;
-        }
-    }
-
-    void release_img() {
-        if (img_rgb) {
-            free(img_rgb);
-            img_rgb = NULL;
-        }
-    }
-
-    void convert() {
-        if (fb == NULL) return;
-
-        if (fb->format == PIXFORMAT_JPEG) {
-            // Unpacks the JPEG data into an RGB buffer.
-            // Note: JPEG frame buffer is freed by ~CamFrame (end of scaope in camera task loop).
-
-            long ms1 = millis();
-            size_t len = fb->width * fb->height * 3;
-            img_rgb = (uint8_t *) heap_caps_malloc(len, MALLOC_CAP_SPIRAM);
-            long ms2 = millis();
-            __process_malloc_ms = ms2 - ms1;
-            if (!img_rgb) {
-                Serial.printf("[Camera] malloc %ld bytes failed\n", len);
-                heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
-                heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
-            }
-            assert(img_rgb != NULL);
-
-            if (!fmt2rgb888(fb->buf, fb->len, fb->format, img_rgb)) {
-                Serial.println("[Camera] fmt2rgb888 failed");
-                return;
-            }
-            __process_copy_ms = millis() - ms2;
-        }
-
-        // TBD: We don't currently use the unpacked RGB buffer for anything.
-        __frame_convert_count++;
-    }
-
-    // Shared the JPEG frame buffer.
-    void share() {
-        if (fb == NULL || gSharedCamImg == NULL) return;
-
-        if (gSharedCamImg->queueIsEmpty() && gSharedCamImg->getAndResetRequest()) {
-            camera_fb_t *fb2 = cam_dup_fb(fb);
-            // Serial.printf("[cam] SEND    fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb2, fb2->width, fb2->height, fb2->format, fb2->len, fb2->buf);
-            if (gSharedCamImg->send(fb2)) {
-                __frame_share_count++;
-            } else {
-                Serial.println("[Camera] gSharedCamImg.send failed");
-                cam_free_fb(fb2);
-            }
-        }
-    }
-};
-
 void _camera_task(void *taskParameters) {
     Serial.printf("[Camera] Task running on Core %d\n", xPortGetCoreID());
 
-    gSharedCamImg = new SharedBuf(gCameraTask, 1);
+    CamFramePool framePool(2);
+    gSharedCamImg = new SharedBufT<CamFrameP>(gCameraTask, 1);
 
     esp_err_t err = esp_task_wdt_add(gCameraTask);
     if (err != ESP_OK) {
@@ -175,11 +79,17 @@ void _camera_task(void *taskParameters) {
     for (;;) {
         if (!is_ota_updating()) {
             // Note: all resources get deallocated when exiting this scope (RAII).
-            CamFrame f = CamFrame();
-            if (f.grab()) {
-                f.convert(); // SVGA --> 1.2sec
-                f.share();
-                __process_delta_ms = millis() - __frame_last_ms;
+            CamFrameP f = framePool.getOrCreate(gCamStats);
+            assert(f != NULL);
+            if (f->grab()) {
+                f->convert(); // SVGA --> 1.2sec
+                if (f->share(gSharedCamImg)) {
+                    framePool.relinquish(f);
+                } else {
+                    f->release_fb();
+                    framePool.reuse(f);
+                }
+                gCamStats.__process_delta_ms = millis() - gCamStats.__frame_last_ms;
             }
         }
 

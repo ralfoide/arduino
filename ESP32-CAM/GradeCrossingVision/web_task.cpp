@@ -9,6 +9,7 @@
 #include "web_task.h"
 #include "camera_task.h"
 #include "shared_buf.h"
+#include "cam_frame.h"
 
 // ==== HTTP Server ====
 
@@ -20,22 +21,21 @@ long gStatLastCaptureMs = 0;
 long gStatDeltaGrabMs = 0;
 long gStatDeltaSendMs = 0;
 
-camera_fb_t *web_get_fb(int timeout_ms) {
-    SharedBuf *sharedBufImg = cam_shared_img();
+CamFrameP web_get_frame(int timeout_ms) {
+    SharedBufT<CamFrameP> *sharedBufImg = cam_shared_img();
     if (sharedBufImg == NULL) return NULL;
 
     sharedBufImg->request();
-    void *data = sharedBufImg->receive(MS_TO_TICKS(timeout_ms));
+    CamFrameP data = sharedBufImg->receive(MS_TO_TICKS(timeout_ms));
     // Serial.printf("[web] web_get_fb data = %p\n", data);
-    if (data != NULL) {
-        camera_fb_t *fb = (camera_fb_t *)data;
-        // Serial.printf("[web] RECEIVE fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb, fb->width, fb->height, fb->format, fb->len, fb->buf);
-    }
-    return (camera_fb_t *)data;
+    return data;
 }
 
-void web_release_fb(camera_fb_t *fb) {
-    cam_free_fb(fb);
+CamFrameP web_release_frame(CamFrameP frame) {
+    if (frame != NULL) {
+        delete frame;
+    }
+    return NULL;
 }
 
 size_t _jpg_encode_stream(void *arg, size_t index, const void *data, size_t len) {
@@ -51,12 +51,13 @@ size_t _jpg_encode_stream(void *arg, size_t index, const void *data, size_t len)
 }
 
 esp_err_t _image_handler(httpd_req_t *req) {
-    camera_fb_t *fb = NULL;
+    CamFrameP frame = NULL;
     esp_err_t res = ESP_OK;
 
     Serial.printf("[HTTP] Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
-    fb = web_get_fb(250 /*ms*/);
-    if (!fb) {
+    frame = web_get_frame(250 /*ms*/);
+    if (!frame || !frame->fb()) {
+        frame = web_release_frame(frame);
         Serial.println("[HTTP] web_get_fb failed");
         httpd_resp_send_500(req);
         return ESP_FAIL;
@@ -69,17 +70,17 @@ esp_err_t _image_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
     size_t fb_len = 0;
-    pixformat_t fb_format = fb->format;
-    if (fb->format == PIXFORMAT_JPEG) {
-        fb_len = fb->len;
-        res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
+    pixformat_t fb_format = frame->fb()->format;
+    if (frame->fb()->format == PIXFORMAT_JPEG) {
+        fb_len = frame->fb()->len;
+        res = httpd_resp_send(req, (const char *)frame->fb()->buf, fb_len);
     } else {
         jpg_chunking_t jchunk = {req, 0};
-        res = frame2jpg_cb(fb, 80, _jpg_encode_stream, &jchunk) ? ESP_OK : ESP_FAIL;
+        res = frame2jpg_cb(frame->fb(), 80, _jpg_encode_stream, &jchunk) ? ESP_OK : ESP_FAIL;
         httpd_resp_send_chunk(req, NULL, 0);  // this frees the buffers used by _jpg_encode_stream
         fb_len = jchunk.len;
     }
-    web_release_fb(fb);
+    frame = web_release_frame(frame);
 
     long fr_end_ms = millis();
 
