@@ -1,11 +1,9 @@
 #ifndef __INC_CAM_FRAME_POOL_H
 #define __INC_CAM_FRAME_POOL_H
 
-
-#include <HardwareSerial.h>
-
 #include "cam_stats.h"
 #include "cam_frame.h"
+#include "common.h"
 
 class CamFramePool {
 private:
@@ -17,7 +15,7 @@ public:
     CamFramePool(int size) :
         _size(size),
         _inUse(0) {
-        _frames = new CamFrameP[size];
+        _frames = new CamFrameP[size]();    // <-- () is initializer for null ptrs
     }
 
     ~CamFramePool() {
@@ -25,6 +23,7 @@ public:
     }
 
     CamFrameP getOrCreate(CamStats &stats) {
+        VERBOSE_PRINTF( ("CamFramePool::getOrCreate...\n") );
         for (int i = 0; i < _size; i++) {
             if (!is_bit_set(_inUse, i)) {
                 _inUse = set_bit(_inUse, i);
@@ -33,13 +32,16 @@ public:
                     frame = new CamFrame(stats);
                     _frames[i] = frame;
                 }
+                VERBOSE_PRINTF( ("CamFramePool::getOrCreate: use %d, %p\n", i, frame) );
                 return frame;
             }
         }
+        VERBOSE_PRINTF( ("CamFramePool::getOrCreate: FAIL\n") );
         return NULL;
     }
 
     void reuse(CamFrameP frame) {
+        VERBOSE_PRINTF( ("CamFramePool::reuse: %p\n", frame) );
         for (int i = 0; i < _size; i++) {
             if (_frames[i] == frame) {
                 _inUse = clear_bit(_inUse, i);
@@ -49,6 +51,7 @@ public:
     }
 
     void relinquish(CamFrameP frame) {
+        VERBOSE_PRINTF( ("CamFramePool::relinquish: %p\n", frame) );
         for (int i = 0; i < _size; i++) {
             if (_frames[i] == frame) {
                 _inUse = clear_bit(_inUse, i);

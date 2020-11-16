@@ -22,16 +22,20 @@ long gStatDeltaGrabMs = 0;
 long gStatDeltaSendMs = 0;
 
 CamFrameP web_get_frame(int timeout_ms) {
+    VERBOSE_PRINTF( ("[WebTask] web_get_frame...\n") );
+
     SharedBufT<CamFrameP> *sharedBufImg = cam_shared_img();
     if (sharedBufImg == NULL) return NULL;
 
     sharedBufImg->request();
     CamFrameP data = sharedBufImg->receive(MS_TO_TICKS(timeout_ms));
-    // Serial.printf("[web] web_get_fb data = %p\n", data);
+    // VERBOSE_PRINTF( ("[web] web_get_fb data = %p\n", data) );
     return data;
 }
 
 CamFrameP web_release_frame(CamFrameP frame) {
+    VERBOSE_PRINTF( ("[WebTask] web_release_frame... %p\n", frame) );
+
     if (frame != NULL) {
         delete frame;
     }
@@ -54,11 +58,11 @@ esp_err_t _image_handler(httpd_req_t *req) {
     CamFrameP frame = NULL;
     esp_err_t res = ESP_OK;
 
-    Serial.printf("[HTTP] Image cnx started. Wifi RSSI %d\n", WiFi.RSSI());
+    DEBUG_PRINTF( ("[HTTP] Image cnx started. Wifi RSSI %d\n", WiFi.RSSI()) );
     frame = web_get_frame(250 /*ms*/);
     if (!frame || !frame->fb()) {
         frame = web_release_frame(frame);
-        Serial.println("[HTTP] web_get_fb failed");
+        ERROR_PRINTF( ("[HTTP] web_get_fb failed\n") );
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -90,11 +94,11 @@ esp_err_t _image_handler(httpd_req_t *req) {
     }
     gStatLastCaptureMs = fr_start_ms;
     gStatDeltaSendMs = fr_end_ms - fr_start_ms;
-    Serial.printf("[HTTP] JPG: fmt=%d len=%d B grab=%d ms send=%d ms\n",
+    DEBUG_PRINTF( ("[HTTP] JPG: fmt=%d len=%d B grab=%d ms send=%d ms\n",
                   fb_format,
                   fb_len,
                   gStatDeltaGrabMs,
-                  gStatDeltaSendMs);
+                  gStatDeltaSendMs) );
 
     return res;
 }
@@ -106,7 +110,7 @@ esp_err_t _index_handler(httpd_req_t *req) {
     sensor_t *s = esp_camera_sensor_get();
     char *p = buf;
 
-    Serial.printf("[HTTP] Index cnx started. Wifi RSSI %d, Core %d\n", WiFi.RSSI(), xPortGetCoreID());
+    DEBUG_PRINTF( ("[HTTP] Index cnx started. Wifi RSSI %d, Core %d\n", WiFi.RSSI(), xPortGetCoreID()) );
 
     p += sprintf(p, "<html><head><meta http-equiv=\"refresh\" content=\"1\"></head><body>\n");
     p += sprintf(p, "<p>Sensor: OV%02xxx\n", s->id.PID);
@@ -117,7 +121,7 @@ esp_err_t _index_handler(httpd_req_t *req) {
 
     size_t len = strlen(buf);
     if (len >= HTTP_BUF_LEN) {
-        Serial.printf("[HTTP] ERROR BUFFER OVERFLOW. Increase HTML buf from %d to %d <<<<<\n", HTTP_BUF_LEN, len);
+        ERROR_PRINTF( ("[HTTP] ERROR BUFFER OVERFLOW. Increase HTML buf from %d to %d <<<<<\n", HTTP_BUF_LEN, len) );
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -143,12 +147,12 @@ void _http_start() {
         .user_ctx = NULL};
 
     if (httpd_start(&gWebHttp, &config) == ESP_OK) {
-        Serial.printf("[HTTP] Started on port %d, httpd %p\n", config.server_port, gWebHttp);
+        DEBUG_PRINTF( ("[HTTP] Started on port %d, httpd %p\n", config.server_port, gWebHttp) );
         httpd_register_uri_handler(gWebHttp, &index_uri);
         httpd_register_uri_handler(gWebHttp, &image_uri);
         web_config_init(gWebHttp, config);
     } else {
-        Serial.println("[HTTP] Error starting");
+        ERROR_PRINTF( ("[HTTP] Error starting\n") );
     }
 }
 
@@ -168,17 +172,17 @@ void wifi_init(const String &wifiSsid, const String &wifiPass) {
 void wifi_loop() {
     if (!gWifiConnected) {
         if (WiFi.status() != WL_CONNECTED) {
-            Serial.print(".");
+            DEBUG_PRINTF( (".") );
         } else {
             gWifiConnected = true;
-            Serial.printf("\nWifi connected at http://%s port %d\n",
+            DEBUG_PRINTF( ("\nWifi connected at http://%s port %d\n",
                           WiFi.localIP().toString().c_str(),
-                          HTTP_PORT);
+                          HTTP_PORT) );
             _http_start();
         }
     } else {
         if (WiFi.status() != WL_CONNECTED) {
-            Serial.printf("Wifi status: %d\n", WiFi.status());
+            DEBUG_PRINTF( ("Wifi status: %d\n", WiFi.status()) );
             // Q: do we need to try to reconnect or restart the http server?
         }
     }

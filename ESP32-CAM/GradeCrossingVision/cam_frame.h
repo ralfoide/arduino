@@ -5,10 +5,8 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
-// #include <freertos/task.h>
 
-#include <HardwareSerial.h>
-
+#include "common.h"
 #include "cam_stats.h"
 #include "shared_buf.h"
 
@@ -26,10 +24,12 @@ public:
         _fb(NULL),
         _img_rgb(NULL),
         _stats(stats) {
+        VERBOSE_PRINTF( ("CamFrame::new %p\n", this) );
     }
 
     ~CamFrame() {
         // Important. We must not leave this without releasing the frame buffer.
+        VERBOSE_PRINTF( ("CamFrame::release %p\n", this) );
         release_fb();
         release_img();
     }
@@ -39,11 +39,12 @@ public:
     }
 
     bool grab() {
+        VERBOSE_PRINTF( ("CamFrame::grab %p\n", this) );
         assert(_fb == NULL); // client should have called release_fb() before.
 
         _fb = esp_camera_fb_get();
         if (!_fb) {
-            Serial.println("[Camera] esp_camera_fb_get failed");
+            ERROR_PRINTF( ("CamFrame::grab esp_camera_fb_get failed\n") );
         }
 
         _stats.__frame_grab_count++;
@@ -72,6 +73,7 @@ public:
     }
 
     void convert() {
+        VERBOSE_PRINTF( ("CamFrame::convert %p\n", this) );
         if (_fb == NULL) return;
 
         // TODO only reallocate if needed
@@ -87,14 +89,14 @@ public:
             long ms2 = millis();
             _stats.__process_malloc_ms = ms2 - ms1;
             if (!_img_rgb) {
-                Serial.printf("[Camera] malloc %ld bytes failed\n", len);
+                ERROR_PRINTF( ("[Camera] malloc %ld bytes failed\n", len) );
                 heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
                 heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
             }
             assert(_img_rgb != NULL);
 
             if (!fmt2rgb888(_fb->buf, _fb->len, _fb->format, _img_rgb)) {
-                Serial.println("[Camera] fmt2rgb888 failed");
+                ERROR_PRINTF( ("[Camera] fmt2rgb888 failed\n") );
                 return;
             }
             _stats.__process_copy_ms = millis() - ms2;
@@ -106,15 +108,15 @@ public:
 
     // Share the JPEG frame buffer. Returns true if it is being shared successfully.
     bool share(SharedBufT<CamFrameP> *sharedCamFrame) {
+        VERBOSE_PRINTF( ("CamFrame::share %p to SharedBufT %p\n", this, sharedCamFrame) );
         if (sharedCamFrame == NULL) return false;
 
         if (sharedCamFrame->queueIsEmpty() && sharedCamFrame->getAndResetRequest()) {
-            // Serial.printf("[cam] SEND    fb %p --> %dx%d, fmt=%d, len=%d, buf=%p\n", fb2, fb2->width, fb2->height, fb2->format, fb2->len, fb2->buf);
             if (sharedCamFrame->send(this)) {
                 _stats.__frame_share_count++;
                 return true;
             } else {
-                Serial.println("[Camera] sharedCamFrame.send failed");
+                ERROR_PRINTF( ("CamFrame::share sharedCamFrame.send failed\n") );
             }
         }
 

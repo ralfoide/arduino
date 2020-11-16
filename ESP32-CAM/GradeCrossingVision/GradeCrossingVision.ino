@@ -52,17 +52,17 @@ void _prefs_init() {
 
 void _prefs_read() {
     if (digitalRead(PIN_NVS_RESET) == LOW) {
-        Serial.println("Prefs: Clearing NVS");
+        DEBUG_PRINTF( ("Prefs: Clearing NVS\n") );
         if (gPrefs.begin("crossing", /* readOnly= */ false)) {
             gPrefs.clear();
             gPrefs.end();
         } else {
-            Serial.println("Prefs: Can't open for clearing");
+            ERROR_PRINTF( ("Prefs: Can't open for clearing\n") );
         }
     }
 
     if (!gPrefs.begin("crossing", /* readOnly= */ true)) {
-        Serial.println("Prefs: Can't open for reading");
+        ERROR_PRINTF( ("Prefs: Can't open for reading\n") );
     }
 
     char buf64[64];
@@ -90,13 +90,13 @@ void _prefs_read() {
 
 void _prefs_updateString(const char *key, const String &str) {
     if (!gPrefs.begin("crossing", /* readOnly= */ false)) {
-        Serial.println("Prefs: Can't open for writing");
+        ERROR_PRINTF( ("Prefs: Can't open for writing\n") );
     }
 
     if (gPrefs.putString(key, str.c_str()) == 0) {
-        Serial.printf("Prefs: Failed to write %s\n", key);
+        ERROR_PRINTF( ("Prefs: Failed to write %s\n", key) );
     } else {
-        Serial.printf("Prefs: Updated %s\n", key);
+        DEBUG_PRINTF( ("Prefs: Updated %s\n", key) );
     }
 
     gPrefs.end();
@@ -117,7 +117,7 @@ void _sd_read_config() {
         }
         File f = SD_MMC.open("/config.txt");
         if (!f) {
-            Serial.println("SD: Config file not found.");
+            ERROR_PRINTF( ("SD: Config file not found.\n") );
             return;
         }
         String ssid = f.readStringUntil('\n');
@@ -141,15 +141,15 @@ void _sd_read_config() {
 
         SD_MMC.end();
     } else {
-        Serial.println("SD: Card not found");
+        ERROR_PRINTF( ("SD: Card not found\n") );
     }
 
     // Ensure flash LED is off after reading SD MMC
     pinMode(PIN_FLASH, OUTPUT);
     _flash(0);
 
-    Serial.printf("Wifi ssid: %s\n", gPrefWifiSsid.c_str());
-    //--(debug only)--Serial.printf("Wifi pass: %s\n", gPrefWifiPass.c_str());
+    DEBUG_PRINTF( ("Wifi ssid: %s\n", gPrefWifiSsid.c_str()) );
+    //--(debug only)--DEBUG_PRINTF( ("Wifi pass: %s\n", gPrefWifiPass.c_str()) );
 }
 
 // ==== OTA ====
@@ -167,7 +167,7 @@ bool is_ota_updating() {
 }
 
 void _ota_init() {
-    Serial.println("[OTA] Init");
+    DEBUG_PRINTF( ("[OTA] Init") );
     // Source:
     // https://github.com/espressif/arduino-esp32/blob/master/libraries/ArduinoOTA/examples/BasicOTA/BasicOTA.ino
 
@@ -187,27 +187,28 @@ void _ota_init() {
 
             // NOTE: if updating SPIFFS this would be the place to unmount
             // SPIFFS using SPIFFS.end()
-            Serial.println("[OTA] Start updating " + type);
+            DEBUG_PRINTF( ("[OTA] Start updating %s\n", type.c_str()) );
         })
         .onEnd([]() {
-            Serial.println("\n[OTA] End");
+            DEBUG_PRINTF( ("\n[OTA] End\n") );
             gOtaState = _OTA_IDLE;
         })
         .onProgress([](unsigned int progress, unsigned int total) {
-            Serial.printf("[OTA] Progress: %u of %u\n", progress, total);
+            DEBUG_PRINTF( ("[OTA] Progress: %u of %u\n", progress, total) );
         })
         .onError([](ota_error_t error) {
-            Serial.printf("[OTA] Error[%u]: ", error);
-            if (error == OTA_AUTH_ERROR)
-                Serial.println("[OTA] Auth Failed");
-            else if (error == OTA_BEGIN_ERROR)
-                Serial.println("[OTA] Begin Failed");
-            else if (error == OTA_CONNECT_ERROR)
-                Serial.println("[OTA] Connect Failed");
-            else if (error == OTA_RECEIVE_ERROR)
-                Serial.println("[OTA] Receive Failed");
-            else if (error == OTA_END_ERROR)
-                Serial.println("[OTA] End Failed");
+            ERROR_PRINTF( ("[OTA] Error[%u]: ", error) );
+            if (error == OTA_AUTH_ERROR) {
+                ERROR_PRINTF( ("[OTA] Auth Failed\n") );
+            } else if (error == OTA_BEGIN_ERROR) {
+                ERROR_PRINTF( ("[OTA] Begin Failed\n") );
+            } else if (error == OTA_CONNECT_ERROR) {
+                ERROR_PRINTF( ("[OTA] Connect Failed\n") );
+            } else if (error == OTA_RECEIVE_ERROR) {
+                ERROR_PRINTF( ("[OTA] Receive Failed\n") );
+            } else if (error == OTA_END_ERROR) {
+                ERROR_PRINTF( ("[OTA] End Failed\n") );
+            }
         });
 
     gOtaState = _OTA_INIT;
@@ -216,7 +217,7 @@ void _ota_init() {
 void _ota_begin() {
     if (gOtaState == _OTA_INIT && is_wifi_connected()) {
         gOtaState = _OTA_IDLE;
-        Serial.println("[OTA] Begin");
+        DEBUG_PRINTF( ("[OTA] Begin\n") );
         ArduinoOTA.begin();
     }
 }
@@ -234,7 +235,7 @@ void _ota_loop() {
 void setup() {
     Serial.begin(115200);
     Serial.setDebugOutput(true);
-    Serial.printf("Grade Crossing INO running on Core %d\n", xPortGetCoreID());
+    DEBUG_PRINTF( ("Grade Crossing INO running on Core %d\n", xPortGetCoreID()) );
 
     // Setup pins
     pinMode(PIN_FLASH, OUTPUT);

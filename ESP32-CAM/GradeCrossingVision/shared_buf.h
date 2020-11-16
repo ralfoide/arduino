@@ -5,26 +5,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
-#include <HardwareSerial.h>
-
-class SharedBuf {
-public:
-    SharedBuf(TaskHandle_t camera_task_handle, uint32_t request_bit);
-
-    // Web handler API
-    void request();
-    void* receive(TickType_t ticks_to_wait);
-
-    // Camera task API
-    bool queueIsEmpty();
-    bool getAndResetRequest();
-    bool send(void *data);
-
-private:
-    TaskHandle_t mCameraTask;
-    QueueHandle_t mDataQueue;
-    uint32_t mRequestBit;
-};
+#include "common.h"
 
 
 template <class P>
@@ -38,16 +19,16 @@ public:
             sizeof(P)     // uxItemSize
         );
         if (mDataQueue == NULL) {
-            Serial.printf("FATAL: QueueCreate(%04x) == NULL\n", request_bit);
+            VERBOSE_PRINTF( ("FATAL: QueueCreate(%04x) == NULL\n", request_bit) );
         } else {
-            Serial.printf("SharedBufT: QueueCreate(%04x) == %p\n", request_bit, mDataQueue);
+            VERBOSE_PRINTF( ("SharedBufT: QueueCreate(%04x) == %p, 1 x sizeof(%d)\n", request_bit, mDataQueue, sizeof(P)) );
         }
     }
 
     // --- Web handler API ---
 
     void request() {
-        // Serial.printf("SharedBufT::request val=%04d\n", mRequestBit);
+        VERBOSE_PRINTF( ("SharedBufT::request val=%04d\n", mRequestBit) );
         xTaskNotify(mCameraTask, mRequestBit, eSetBits);
     }
 
@@ -57,16 +38,16 @@ public:
                 mDataQueue,  // xQueue,
                 &data,       // pvBuffer,
                 ticks_to_wait) == pdTRUE) {
-            // Serial.printf("SharedBufT::receive: %p\n", msg.data);
+            VERBOSE_PRINTF( ("SharedBufT::receive: %p\n", data) );
         }
-        // Serial.printf("SharedBufT::receive: %p\n", NULL);
+        VERBOSE_PRINTF( ("SharedBufT::receive: %p\n", NULL) );
         return data;
     }
 
     // --- Camera task API ---
 
     bool queueIsEmpty() {
-        // Serial.printf("SharedBuf::queueIsEmpty: %d\n", (uxQueueSpacesAvailable(mDataQueue) > 0));
+        VERBOSE_PRINTF( ("SharedBufT::queueIsEmpty: %d\n", (uxQueueSpacesAvailable(mDataQueue) > 0)) );
         return uxQueueSpacesAvailable(mDataQueue) > 0;
     }
 
@@ -78,19 +59,19 @@ public:
                 &value,       // pulNotificationValue,
                 0             // xTicksToWait
                 ) == pdPASS) {
-            // Serial.printf("SharedBufT::getAndResetRequest: val=%04x\n", value);
+            VERBOSE_PRINTF( ("SharedBufT::getAndResetRequest: val=%04x\n", value) );
             return (value & mRequestBit) != 0;
         }
 
-        // Serial.printf("SharedBufT::getAndResetRequest: FALSE\n");
+        VERBOSE_PRINTF( ("SharedBufT::getAndResetRequest: FALSE\n") );
         return false;
     }
 
     bool send(P data) {
-        // Serial.printf("SharedBufT::send: data=%p\n", msg.data);
+        VERBOSE_PRINTF( ("SharedBufT::send: data=%p\n", data) );
         return xQueueSend(
             mDataQueue,  // xQueue,
-            data,        // pvItemToQueue,
+            &data,       // pvItemToQueue,
             1            // xTicksToWait
         ) == pdTRUE;
     }

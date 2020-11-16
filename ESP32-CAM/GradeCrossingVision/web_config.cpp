@@ -1,17 +1,18 @@
 #include <esp_camera.h>
 #include <esp_http_server.h>
-#include <HardwareSerial.h>
+
 #include "camera_index.h"
 #include "shared_buf.h"
 #include "cam_frame.h"
 #include "web_task.h"
+#include "common.h"
 
 esp_err_t __config_index_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/html");
     httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
     sensor_t *s = esp_camera_sensor_get();
     if (s->id.PID != OV2640_PID) {
-        Serial.printf("[Config] ERROR Only Sensor OV2640 supported. Instead found OV%02xxx\n", s->id.PID);
+        ERROR_PRINTF( ("[Config] ERROR Only Sensor OV2640 supported. Instead found OV%02xxx\n", s->id.PID) );
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -28,10 +29,10 @@ static esp_err_t __capture_handler(httpd_req_t *req) {
     CamFrameP frame = NULL;
     esp_err_t res = ESP_OK;
 
-    Serial.println("[Config] Capture single.");
+    DEBUG_PRINTF( ("[Config] Capture single.\n") );
     frame = web_get_frame(250 /*ms*/);
     if (!frame || !frame->fb()) {
-        Serial.println("[Config] esp_camera_fb_get failed");
+        ERROR_PRINTF( ("[Config] esp_camera_fb_get failed\n") );
         frame = web_release_frame(frame);
         httpd_resp_send_500(req);
         return ESP_FAIL;
@@ -65,7 +66,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
     uint8_t *_jpg_buf = NULL;
     char *part_buf[64];
 
-    Serial.println("[Config] Capture stream.");
+    DEBUG_PRINTF( ("[Config] Capture stream.\n") );
 
     res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
     if (res != ESP_OK) {
@@ -77,7 +78,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
     while (true) {
         frame = web_get_frame(250 /*ms*/);
         if (!frame || !frame->fb()) {
-            Serial.println("[Config] ERROR Camera capture failed");
+            ERROR_PRINTF( ("[Config] ERROR Camera capture failed\n") );
             frame = web_release_frame(frame);
             res = ESP_FAIL;
         } else {
@@ -88,7 +89,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
                 bool jpeg_converted = frame2jpg(frame->fb(), 80, &_jpg_buf, &_jpg_buf_len);
                 frame = web_release_frame(frame);
                 if (!jpeg_converted) {
-                    Serial.println("[Config] Stream JPEG compression failed");
+                    ERROR_PRINTF( ("[Config] Stream JPEG compression failed\n") );
                     res = ESP_FAIL;
                 }
             }
@@ -113,7 +114,7 @@ static esp_err_t __stream_handler(httpd_req_t *req) {
             _jpg_buf = NULL;
         }
         if (res != ESP_OK) {
-            Serial.println("[Config] ERROR stream failed");
+            ERROR_PRINTF( ("[Config] ERROR stream failed\n") );
             break;
         }
     }
@@ -309,9 +310,9 @@ void web_config_init(httpd_handle_t camera_httpd, httpd_config_t &config) {
     config.server_port += 1;
     config.ctrl_port += 1;
     if (httpd_start(&gStreamHttpd, &config) == ESP_OK) {
-        Serial.printf("[Config] Starting stream server on port %d, handle %p\n", config.server_port, gStreamHttpd);
+        DEBUG_PRINTF( ("[Config] Starting stream server on port %d, handle %p\n", config.server_port, gStreamHttpd) );
         httpd_register_uri_handler(gStreamHttpd, &stream_uri);
     } else {
-        Serial.println("[Config] Error starting stream server");
+        ERROR_PRINTF( ("[Config] Error starting stream server\n") );
     }
 }

@@ -2,8 +2,6 @@
 #include <esp_camera.h>
 #include <img_converters.h>
 
-#include <HardwareSerial.h>
-
 #include "common.h"
 #include "cam_stats.h"
 #include "shared_buf.h"
@@ -13,11 +11,11 @@
 
 TaskHandle_t gCameraTask = NULL;
 SharedBufT<CamFrameP> *gSharedCamImg = NULL;
-CamStats gCamStats = {0, 0, 0, 0, 0, 0, 0, 0};
+CamStats gCamStats = {};    // <-- inits all fields to 0/null.
 
 
 void cam_print_stats() {
-    Serial.printf("[Camera] Grb:%4d @ %2d ms > Cvt:%4d > Shr:%4d @ %2d [%d + %d] ms | Mem Int %ld B, Ext %ld B\n",
+    DEBUG_PRINTF( ("[Camera] Grb:%4d @ %2d ms > Cvt:%4d > Shr:%4d @ %2d [%d + %d] ms | Mem Int %ld B, Ext %ld B\n",
                   gCamStats.__frame_grab_count,
                   gCamStats.__frame_delta_ms,
                   gCamStats.__frame_convert_count,
@@ -27,53 +25,23 @@ void cam_print_stats() {
                   gCamStats.__process_copy_ms,
                   heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                   heap_caps_get_free_size(MALLOC_CAP_SPIRAM)
-                  );
+                  ) );
 }
 
 SharedBufT<CamFrameP> *cam_shared_img() { return gSharedCamImg; }
 
-// Deprecated
-camera_fb_t *cam_dup_fb(camera_fb_t *src) {
-    // Serial.printf("[cam] cam_dup_fb fb %p", src);
-    assert(src != NULL);
-    // Serial.printf("... len=%d, buf=%p\n", src, src->len, src->buf);
-    camera_fb_t *dst = (camera_fb_t *) malloc(sizeof(camera_fb_t));
-    assert(dst != NULL);
-
-    memcpy(dst, src, sizeof(camera_fb_t));
-
-    dst->buf = NULL;
-    size_t len = dst->len;
-    if (len > 0 && src->buf != NULL) {
-        dst->buf = (uint8_t *) heap_caps_malloc(len, MALLOC_CAP_SPIRAM);
-        assert(dst->buf != NULL);
-        memcpy(dst->buf, src->buf, len);
-    }
-
-    return dst;
-}
-
-// Deprecated?
-void cam_free_fb(camera_fb_t *fb) {
-    if (fb == NULL) return;
-    if (fb->buf) {
-        free(fb->buf);
-        fb->buf = NULL;
-    }
-    free(fb);
-}
 
 void _camera_task(void *taskParameters) {
-    Serial.printf("[Camera] Task running on Core %d\n", xPortGetCoreID());
+    DEBUG_PRINTF( ("[Camera] Task running on Core %d\n", xPortGetCoreID()) );
 
     CamFramePool framePool(2);
     gSharedCamImg = new SharedBufT<CamFrameP>(gCameraTask, 1);
 
     esp_err_t err = esp_task_wdt_add(gCameraTask);
     if (err != ESP_OK) {
-        Serial.printf("[Camera] Failed to add watchdog: err=%d\n", err);
+        ERROR_PRINTF( ("[Camera] Failed to add watchdog: err=%d\n", err) );
     } else {
-        Serial.printf("[Camera] Watchdog set %d\n", err); // -- timeouts = %d seconds\n", CONFIG_ESP_TASK_WDT_TIMEOUT_S);
+        DEBUG_PRINTF( ("[Camera] Watchdog set %d\n", err) ); // -- timeouts = %d seconds\n", CONFIG_ESP_TASK_WDT_TIMEOUT_S) );
     }
 
     for (;;) {
@@ -130,9 +98,9 @@ void _esp_camera_init() {
 
     //init with high specs to pre-allocate larger buffers
     if (psramFound()) {
-        Serial.println("[Camera] PSRAM found. Using SVGA size.");
+        DEBUG_PRINTF( ("[Camera] PSRAM found. Using SVGA size.\n") );
     } else {
-        Serial.println("[Camera] ERROR PSRAM not found.");
+        DEBUG_PRINTF( ("[Camera] ERROR PSRAM not found.\n") );
     }
 
     //config.frame_size = FRAMESIZE_SVGA;  // 800x600
@@ -143,7 +111,7 @@ void _esp_camera_init() {
     // camera init
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        Serial.printf("[Camera] init failed with error 0x%x\n", err);
+        ERROR_PRINTF( ("[Camera] init failed with error 0x%x\n", err) );
         return;
     }
 
@@ -159,11 +127,11 @@ void camera_task_init() {
     _esp_camera_init();
 
 #if CONFIG_CAMERA_CORE0
-    Serial.println("[Camera] ESP32-Camera task is pinned Core 0.");
+    DEBUG_PRINTF( ("[Camera] ESP32-Camera task is pinned Core 0.\n") );
 #elif CONFIG_CAMERA_CORE1
-    Serial.println("[Camera] ESP32-Camera task is pinned Core 1.");
+    DEBUG_PRINTF( ("[Camera] ESP32-Camera task is pinned Core 1.\n") );
 #else
-    Serial.println("[Camera] ESP32-Camera task has no core affinity.");
+    DEBUG_PRINTF( ("[Camera] ESP32-Camera task has no core affinity.\n") );
 #endif
 
     if (xTaskCreatePinnedToCore(
@@ -174,9 +142,9 @@ void camera_task_init() {
             1,             // uxPriority, from 0 to configMAX_PRIORITIES
             &gCameraTask,  // pvCreatedTask
             PRO_CPU /*tskNO_AFFINITY*/) != pdPASS) {
-        Serial.println("[Camera] FATAL: Camera xTaskCreate failed.");
+        ERROR_PRINTF( ("[Camera] FATAL: Camera xTaskCreate failed.\n") );
     } else {
-        Serial.printf("[Camera]  Task created == %p\n", gCameraTask);
+        DEBUG_PRINTF( ("[Camera]  Task created == %p\n", gCameraTask) );
     }
 }
 
