@@ -1,0 +1,26 @@
+[package]
+name = "esp-r1"
+version = "0.1.0"
+authors = ["ralf <ralfoide@gmail.com>"]
+edition = "2021"
+resolver = "2"
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true # Symbols are nice and they don't increase the size on Flash
+opt-level = "z"
+
+[features]
+pio = ["esp-idf-sys/pio"]
+riscv-ulp-hal = []
+
+[dependencies]
+embedded-hal = "0.2.7"
+esp-idf-hal = "0.40.1"
+esp-idf-sys = { version = "0.32", features = ["binstart"] }
+
+
+[build-dependencies]
+embuild = "0.30.4"
