@@ -1,0 +1,91 @@
+#!/usr/bin/python
+# checkservo will set the servo to it's last known position -  Important
+# after a power cycle  
+from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_I2C import Adafruit_I2C
+import time
+import sys
+import getopt
+#-------------------------------------------
+
+statefile = ''
+iaddr = 0
+saddr = ""
+motor = 0
+
+def main(argv):
+   try:
+      #print 'checkservo.py -a <address>'
+      opts, args = getopt.getopt(argv,"h:a:",["address="])
+   except getopt.GetoptError:
+      print 'checkservo.py -a <address>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'checkservo  -a <address> '
+         sys.exit()
+      elif opt in ("-a", "--address"):
+         address = arg
+         iaddr = int(address)
+         saddr = address
+
+   #-------------------------------------------
+
+   #set the base regaddr to  16 dec
+   # the I2c motor addresses start at 0 o the motor number has to be 
+   # (address -1)
+   #
+   regaddr=0x10 
+   motor = int(iaddr)
+   motor = motor - 1
+   #print "MOTOR = %i" %motor
+   regaddr = int(address) *4 + 4
+   # ===========================================================================
+   
+   statefile = "/usr/local/etc/.servo" + address + ".state"
+   #print "statefile = %s" %statefile
+   f = open(statefile, 'r')
+   state = f.read()
+   #if state == '':
+      #print "ERROR"
+      #sys.exit (1)
+   #print state,
+   #print "last position = %s" %state,
+   
+   # ===========================================================================
+   
+   # Initialise the PWM device using the default address
+   pwm = PWM(0x40, debug=False)
+   i2c=Adafruit_I2C (0x40, 1)
+   
+   #pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+   
+   i2creg = i2c.readU16Rev(regaddr)
+   #print "i2c register contents (u16) = %d" %i2creg
+   
+   # check if controller was reset and reconfig
+   #print "res = %i" %i2creg
+   #print "state = %i" %int(state)
+   #print "i2creg = %i" %i2creg
+   #print "motor = %i" %motor
+   #print "last known pos  = %i" %int(state)
+   
+   #print "i2creg = %i" %i2creg
+   if i2creg > 4000:
+    #print "i2creg = %i" %i2creg
+      #print "reset detected motor = %i" %motor
+      #print "reset detected setting pos  = %i" %int(state)
+      pwm.setPWM(motor, 0, int(state))
+      pwm.setPWM(motor, 0, int(state))
+   #
+   #time.sleep (4)
+   #pwm.setPWM(motor , 0, i2creg)
+   
+   
+   #pwm.setPWM(motor , 0, servoMin)
+   i2creg = i2c.readU16Rev(regaddr)
+   #print "I2C REG u16  %d" %i2creg
+   
+   
+if __name__ == "__main__":
+   main(sys.argv[1:])

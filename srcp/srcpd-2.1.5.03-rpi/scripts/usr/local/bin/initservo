@@ -1,0 +1,79 @@
+#!/usr/bin/python
+
+from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_I2C import Adafruit_I2C
+import time
+import sys
+import getopt
+regaddr=0x10
+motor = 0
+statefile = ""
+
+
+
+def main(argv):
+   try:
+      address = ''
+      opts, args = getopt.getopt(argv,"h:a:",["address="])
+   except getopt.GetoptError:
+      print 'initservo -a <address>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'initservo.py -a <address> '
+         sys.exit()
+      elif opt in ("-a", "--address"):
+         address = arg
+   print 'addr is ', address
+   #print 'positon  is ', position
+   #print 'speed is ', speed
+
+# ===========================================================================
+   statefile = "/usr/local/etc/.servo" + str(address) + ".state"
+   f = open(statefile, 'r')
+   state = f.read()
+   #print state,
+  # print "statefile %s says %s" % (statefile, state)
+   
+   # ===========================================================================
+   
+   # Initialise the PWM device using the default address
+   pwm = PWM(0x40, debug=False)
+   i2c=Adafruit_I2C (0x40, 1)
+   pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+   
+   #regaddr = motor + 8
+   regaddr = (int (address) * 4) + 4 
+   
+   print "regaddr = %i" %regaddr
+   
+   result = i2c.readU16Rev(regaddr)
+   
+   print "register = 0x%x (16bit)" %result
+   #if result <  4000:
+	   #sys.exit(0)
+   
+   # check if controller was reset and reconfig
+   #print "res = %i" %result
+   #print "state = %i" %int(state)
+   #print "servomax = %i" %servoMax
+   
+   if result > 4000:
+	   print "reset detected state = %s" %state
+	   pwm.setPWM(motor, 0, int(state))
+   #
+   if result < 4000:
+      print "servo state ok - state = %s" %result
+      #time.sleep (4)
+   #pwm.setPWM(motor , 0, result)
+   
+   
+   #pwm.setPWM(motor , 0, servoMin)
+   result = i2c.readU16Rev(regaddr)
+   #print "u16  %d" %result
+   
+            
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+cd ../scripts
+cp -r * /
+update-rc.d srcp defaults
+
+

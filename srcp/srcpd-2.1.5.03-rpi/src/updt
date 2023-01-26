@@ -1,0 +1,5 @@
+kill `cat /var/run/srcpd.pid`
+sleep 3
+cp srcpd /usr/local/sbin/
+srcpd
+tail -f /var/log/syslog

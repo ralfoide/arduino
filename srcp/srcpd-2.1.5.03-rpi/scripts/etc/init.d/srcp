@@ -1,0 +1,61 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          srcp
+# Required-Start:    hostname $local_fs
+# Required-Stop:
+# Should-Start:
+# Default-Start:     1 2 3 4 5
+# Default-Stop:
+# Short-Description: Create dynamic part of srcpd
+# Description:       srcpd is for model railroads
+#                    
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/binL/usr/local/bin
+. /lib/init/vars.sh
+
+do_start () {
+	# start srcpd
+	sleep 3
+	/usr/local/sbin/srcpd
+        /bin/sleep 1
+# sequence is important when setting the I2C buses
+# first set the linux driver for 400kc
+# then enable the second bus
+	/usr/local/bin/400ki2c
+        /usr/local/bin/enable-i2c-bus-0
+	/usr/local/bin/initfb
+	/usr/local/bin/initsw
+	/usr/local/bin/initallservos
+	/usr/local/bin/initrelay
+        /bin/rm -f /usr/local/tmp/.lock*
+}
+
+do_status () {
+		echo "status not implemented - try ps -ef | grep srcpd"
+		return 0
+}
+
+case "$1" in
+  start|"")
+	do_start
+	;;
+  restart|reload|force-reload)
+	echo "Error: argument '$1' not supported" >&2
+	exit 3
+	;;
+  stop)
+	kill `cat /var/run/srcpd.pid`
+	# No-op
+	;;
+  status)
+	do_status
+	exit $?
+	;;
+  *)
+	echo "Usage: motd [start|stop|status]" >&2
+	exit 3
+	;;
+esac
+
+:

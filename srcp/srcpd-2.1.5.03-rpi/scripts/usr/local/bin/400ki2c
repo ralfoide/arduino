@@ -1,0 +1,5 @@
+#!/bin/sh
+# contrary to the name, the speed is doubled to 200,000 bps.   
+# 400k was unreliabble with long wiring.
+rmmod i2c_bcm2708
+modprobe i2c_bcm2708 baudrate=200000

@@ -1,0 +1,36 @@
+#!/usr/bin/python
+#import os
+#import time
+import sys
+import getopt
+import smbus
+bus = smbus.SMBus(1)
+
+statefile = "/usr/local/etc/relay.state"
+
+
+f = open(statefile, 'r')
+register = int(f.read())
+f.close()
+address = 0x20
+# set A7-A0 as output pins
+bus.write_byte_data(address,0x00,0x00) 
+bus.write_byte_data(address,0x0a,register) 
+
+
+
+
+statefile = "/usr/local/etc/relay-8-16.state"
+
+
+f = open(statefile, 'r')
+register = int(f.read())
+f.close()
+address = 0x21
+# set A7-A0 as output pins
+bus.write_byte_data(address,0x00,0x00) 
+bus.write_byte_data(address,0x0a,register) 
+
+
+
+

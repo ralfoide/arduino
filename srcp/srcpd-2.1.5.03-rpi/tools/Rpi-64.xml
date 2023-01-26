@@ -1,0 +1,390 @@
+<decoder manu="A&E" type="Rpi Servo decoder" web="http://rocpi.ae-tool.com/">
+<cvbyte nr="1" cat="Decoder address" desc="Base Address (6 LSB of accessory decoder address)" info="Decoder address low byte in range of 1-63."/>
+<cvbyte nr="7" cat="info" desc="Manufacturer Version No." readonly="true" info="manufacturer's version number.  (2.1.3 or 213"/>
+<cvbyte nr="8" cat="info" desc="Manufacturer ID" readonly="true" info="NMRA assignedmanufacturer's id number. Rpi=13 (DIY and PD devices)"/>
+<cvbyte nr="9" cat="address" desc="Base Address (High byte)" info="Decoder address high byte - range of 0-7."/>
+<cvbyte nr="29" cat="config" desc="Configuration" readonly="true" info="Configuration data (128 for accessory decoder)."/>
+<cvbyte nr="513" cat="Servo 1 CV Group" desc="Servo 1 LSB start point" info="Servo 1 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="514" cat="Servo 1 CV Group" desc="Servo 1 MSB start point" info="Servo 1 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="515" cat="Servo 1 CV Group" desc="Servo 1 LSB end point" info="Servo 1 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="516" cat="Servo 1 CV Group" desc="Servo 1 MSB end point" info="Servo 1 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="517" cat="Servo 1 CV Group" desc="Servo 1 Speed" info="Servo 1 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="518" cat="Servo 1 CV Group" desc="Servo 1 Step" info="Servo 1 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="519" cat="Servo 2 CV Group" desc="Servo 2 LSB start point" info="Servo 2 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="520" cat="Servo 2 CV Group" desc="Servo 2 MSB start point" info="Servo 2 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="521" cat="Servo 2 CV Group" desc="Servo 2 LSB end point" info="Servo 2 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="522" cat="Servo 2 CV Group" desc="Servo 2 MSB end point" info="Servo 2 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="523" cat="Servo 2 CV Group" desc="Servo 2 Speed" info="Servo 2 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="524" cat="Servo 2 CV Group" desc="Servo 2 Step" info="Servo 2 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="525" cat="Servo 3 CV Group" desc="Servo 3 LSB start point" info="Servo 3 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="526" cat="Servo 3 CV Group" desc="Servo 3 MSB start point" info="Servo 3 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="527" cat="Servo 3 CV Group" desc="Servo 3 LSB end point" info="Servo 3 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="528" cat="Servo 3 CV Group" desc="Servo 3 MSB end point" info="Servo 3 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="529" cat="Servo 3 CV Group" desc="Servo 3 Speed" info="Servo 3 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="530" cat="Servo 3 CV Group" desc="Servo 3 Step" info="Servo 3 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="531" cat="Servo 4 CV Group" desc="Servo 4 LSB start point" info="Servo 4 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="532" cat="Servo 4 CV Group" desc="Servo 4 MSB start point" info="Servo 4 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="533" cat="Servo 4 CV Group" desc="Servo 4 LSB end point" info="Servo 4 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="534" cat="Servo 4 CV Group" desc="Servo 4 MSB end point" info="Servo 4 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="535" cat="Servo 4 CV Group" desc="Servo 4 Speed" info="Servo 4 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="536" cat="Servo 4 CV Group" desc="Servo 4 Step" info="Servo 4 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="537" cat="Servo 5 CV Group" desc="Servo 5 LSB start point" info="Servo 5 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="538" cat="Servo 5 CV Group" desc="Servo 5 MSB start point" info="Servo 5 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="539" cat="Servo 5 CV Group" desc="Servo 5 LSB end point" info="Servo 5 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="540" cat="Servo 5 CV Group" desc="Servo 5 MSB end point" info="Servo 5 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="541" cat="Servo 5 CV Group" desc="Servo 5 Speed" info="Servo 5 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="542" cat="Servo 5 CV Group" desc="Servo 5 Step" info="Servo 5 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="543" cat="Servo 6 CV Group" desc="Servo 6 LSB start point" info="Servo 6 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="544" cat="Servo 6 CV Group" desc="Servo 6 MSB start point" info="Servo 6 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="545" cat="Servo 6 CV Group" desc="Servo 6 LSB end point" info="Servo 6 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="546" cat="Servo 6 CV Group" desc="Servo 6 MSB end point" info="Servo 6 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="547" cat="Servo 6 CV Group" desc="Servo 6 Speed" info="Servo 6 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="548" cat="Servo 6 CV Group" desc="Servo 6 Step" info="Servo 6 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="549" cat="Servo 7 CV Group" desc="Servo 7 LSB start point" info="Servo 7 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="550" cat="Servo 7 CV Group" desc="Servo 7 MSB start point" info="Servo 7 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="551" cat="Servo 7 CV Group" desc="Servo 7 LSB end point" info="Servo 7 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="552" cat="Servo 7 CV Group" desc="Servo 7 MSB end point" info="Servo 7 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="553" cat="Servo 7 CV Group" desc="Servo 7 Speed" info="Servo 7 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="554" cat="Servo 7 CV Group" desc="Servo 7 Step" info="Servo 7 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="555" cat="Servo 8 CV Group" desc="Servo 8 LSB start point" info="Servo 8 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="556" cat="Servo 8 CV Group" desc="Servo 8 MSB start point" info="Servo 8 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="557" cat="Servo 8 CV Group" desc="Servo 8 LSB end point" info="Servo 8 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="558" cat="Servo 8 CV Group" desc="Servo 8 MSB end point" info="Servo 8 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="559" cat="Servo 8 CV Group" desc="Servo 8 Speed" info="Servo 8 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="560" cat="Servo 8 CV Group" desc="Servo 8 Step" info="Servo 8 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="561" cat="Servo 9 CV Group" desc="Servo 9 LSB start point" info="Servo 9 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="562" cat="Servo 9 CV Group" desc="Servo 9 MSB start point" info="Servo 9 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="563" cat="Servo 9 CV Group" desc="Servo 9 LSB end point" info="Servo 9 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="564" cat="Servo 9 CV Group" desc="Servo 9 MSB end point" info="Servo 9 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="565" cat="Servo 9 CV Group" desc="Servo 9 Speed" info="Servo 9 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="566" cat="Servo 9 CV Group" desc="Servo 9 Step" info="Servo 9 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="567" cat="Servo 10 CV Group" desc="Servo 10 LSB start point" info="Servo 10 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="568" cat="Servo 10 CV Group" desc="Servo 10 MSB start point" info="Servo 10 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="569" cat="Servo 10 CV Group" desc="Servo 10 LSB end point" info="Servo 10 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="570" cat="Servo 10 CV Group" desc="Servo 10 MSB end point" info="Servo 10 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="571" cat="Servo 10 CV Group" desc="Servo 10 Speed" info="Servo 10 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="572" cat="Servo 10 CV Group" desc="Servo 10 Step" info="Servo 10 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="573" cat="Servo 11 CV Group" desc="Servo 11 LSB start point" info="Servo 11 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="574" cat="Servo 11 CV Group" desc="Servo 11 MSB start point" info="Servo 11 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="575" cat="Servo 11 CV Group" desc="Servo 11 LSB end point" info="Servo 11 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="576" cat="Servo 11 CV Group" desc="Servo 11 MSB end point" info="Servo 11 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="577" cat="Servo 11 CV Group" desc="Servo 11 Speed" info="Servo 11 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="578" cat="Servo 11 CV Group" desc="Servo 11 Step" info="Servo 11 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="579" cat="Servo 12 CV Group" desc="Servo 12 LSB start point" info="Servo 12 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="580" cat="Servo 12 CV Group" desc="Servo 12 MSB start point" info="Servo 12 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="581" cat="Servo 12 CV Group" desc="Servo 12 LSB end point" info="Servo 12 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="582" cat="Servo 12 CV Group" desc="Servo 12 MSB end point" info="Servo 12 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="583" cat="Servo 12 CV Group" desc="Servo 12 Speed" info="Servo 12 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="584" cat="Servo 12 CV Group" desc="Servo 12 Step" info="Servo 12 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="585" cat="Servo 13 CV Group" desc="Servo 13 LSB start point" info="Servo 13 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="586" cat="Servo 13 CV Group" desc="Servo 13 MSB start point" info="Servo 13 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="587" cat="Servo 13 CV Group" desc="Servo 13 LSB end point" info="Servo 13 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="588" cat="Servo 13 CV Group" desc="Servo 13 MSB end point" info="Servo 13 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="589" cat="Servo 13 CV Group" desc="Servo 13 Speed" info="Servo 13 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="590" cat="Servo 13 CV Group" desc="Servo 13 Step" info="Servo 13 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="591" cat="Servo 14 CV Group" desc="Servo 14 LSB start point" info="Servo 14 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="592" cat="Servo 14 CV Group" desc="Servo 14 MSB start point" info="Servo 14 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="593" cat="Servo 14 CV Group" desc="Servo 14 LSB end point" info="Servo 14 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="594" cat="Servo 14 CV Group" desc="Servo 14 MSB end point" info="Servo 14 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="595" cat="Servo 14 CV Group" desc="Servo 14 Speed" info="Servo 14 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="596" cat="Servo 14 CV Group" desc="Servo 14 Step" info="Servo 14 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="597" cat="Servo 15 CV Group" desc="Servo 15 LSB start point" info="Servo 15 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="598" cat="Servo 15 CV Group" desc="Servo 15 MSB start point" info="Servo 15 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="599" cat="Servo 15 CV Group" desc="Servo 15 LSB end point" info="Servo 15 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="600" cat="Servo 15 CV Group" desc="Servo 15 MSB end point" info="Servo 15 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="601" cat="Servo 15 CV Group" desc="Servo 15 Speed" info="Servo 15 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="602" cat="Servo 15 CV Group" desc="Servo 15 Step" info="Servo 15 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="603" cat="Servo 16 CV Group" desc="Servo 16 LSB start point" info="Servo 16 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="604" cat="Servo 16 CV Group" desc="Servo 16 MSB start point" info="Servo 16 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="605" cat="Servo 16 CV Group" desc="Servo 16 LSB end point" info="Servo 16 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="606" cat="Servo 16 CV Group" desc="Servo 16 MSB end point" info="Servo 16 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="607" cat="Servo 16 CV Group" desc="Servo 16 Speed" info="Servo 16 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="608" cat="Servo 16 CV Group" desc="Servo 16 Step" info="Servo 16 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="609" cat="Servo 17 CV Group" desc="Servo 17 LSB start point" info="Servo 17 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="610" cat="Servo 17 CV Group" desc="Servo 17 MSB start point" info="Servo 17 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="611" cat="Servo 17 CV Group" desc="Servo 17 LSB end point" info="Servo 17 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="612" cat="Servo 17 CV Group" desc="Servo 17 MSB end point" info="Servo 17 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="613" cat="Servo 17 CV Group" desc="Servo 17 Speed" info="Servo 17 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="614" cat="Servo 17 CV Group" desc="Servo 17 Step" info="Servo 17 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="615" cat="Servo 18 CV Group" desc="Servo 18 LSB start point" info="Servo 18 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="616" cat="Servo 18 CV Group" desc="Servo 18 MSB start point" info="Servo 18 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="617" cat="Servo 18 CV Group" desc="Servo 18 LSB end point" info="Servo 18 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="618" cat="Servo 18 CV Group" desc="Servo 18 MSB end point" info="Servo 18 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="619" cat="Servo 18 CV Group" desc="Servo 18 Speed" info="Servo 18 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="620" cat="Servo 18 CV Group" desc="Servo 18 Step" info="Servo 18 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="621" cat="Servo 19 CV Group" desc="Servo 19 LSB start point" info="Servo 19 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="622" cat="Servo 19 CV Group" desc="Servo 19 MSB start point" info="Servo 19 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="623" cat="Servo 19 CV Group" desc="Servo 19 LSB end point" info="Servo 19 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="624" cat="Servo 19 CV Group" desc="Servo 19 MSB end point" info="Servo 19 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="625" cat="Servo 19 CV Group" desc="Servo 19 Speed" info="Servo 19 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="626" cat="Servo 19 CV Group" desc="Servo 19 Step" info="Servo 19 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="627" cat="Servo 20 CV Group" desc="Servo 20 LSB start point" info="Servo 20 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="628" cat="Servo 20 CV Group" desc="Servo 20 MSB start point" info="Servo 20 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="629" cat="Servo 20 CV Group" desc="Servo 20 LSB end point" info="Servo 20 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="630" cat="Servo 20 CV Group" desc="Servo 20 MSB end point" info="Servo 20 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="631" cat="Servo 20 CV Group" desc="Servo 20 Speed" info="Servo 20 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="632" cat="Servo 20 CV Group" desc="Servo 20 Step" info="Servo 20 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="633" cat="Servo 21 CV Group" desc="Servo 21 LSB start point" info="Servo 21 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="634" cat="Servo 21 CV Group" desc="Servo 21 MSB start point" info="Servo 21 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="635" cat="Servo 21 CV Group" desc="Servo 21 LSB end point" info="Servo 21 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="636" cat="Servo 21 CV Group" desc="Servo 21 MSB end point" info="Servo 21 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="637" cat="Servo 21 CV Group" desc="Servo 21 Speed" info="Servo 21 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="638" cat="Servo 21 CV Group" desc="Servo 21 Step" info="Servo 21 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="639" cat="Servo 22 CV Group" desc="Servo 22 LSB start point" info="Servo 22 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="640" cat="Servo 22 CV Group" desc="Servo 22 MSB start point" info="Servo 22 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="641" cat="Servo 22 CV Group" desc="Servo 22 LSB end point" info="Servo 22 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="642" cat="Servo 22 CV Group" desc="Servo 22 MSB end point" info="Servo 22 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="643" cat="Servo 22 CV Group" desc="Servo 22 Speed" info="Servo 22 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="644" cat="Servo 22 CV Group" desc="Servo 22 Step" info="Servo 22 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="645" cat="Servo 23 CV Group" desc="Servo 23 LSB start point" info="Servo 23 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="646" cat="Servo 23 CV Group" desc="Servo 23 MSB start point" info="Servo 23 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="647" cat="Servo 23 CV Group" desc="Servo 23 LSB end point" info="Servo 23 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="648" cat="Servo 23 CV Group" desc="Servo 23 MSB end point" info="Servo 23 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="649" cat="Servo 23 CV Group" desc="Servo 23 Speed" info="Servo 23 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="650" cat="Servo 23 CV Group" desc="Servo 23 Step" info="Servo 23 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="651" cat="Servo 24 CV Group" desc="Servo 24 LSB start point" info="Servo 24 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="652" cat="Servo 24 CV Group" desc="Servo 24 MSB start point" info="Servo 24 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="653" cat="Servo 24 CV Group" desc="Servo 24 LSB end point" info="Servo 24 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="654" cat="Servo 24 CV Group" desc="Servo 24 MSB end point" info="Servo 24 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="655" cat="Servo 24 CV Group" desc="Servo 24 Speed" info="Servo 24 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="656" cat="Servo 24 CV Group" desc="Servo 24 Step" info="Servo 24 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="657" cat="Servo 25 CV Group" desc="Servo 25 LSB start point" info="Servo 25 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="658" cat="Servo 25 CV Group" desc="Servo 25 MSB start point" info="Servo 25 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="659" cat="Servo 25 CV Group" desc="Servo 25 LSB end point" info="Servo 25 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="660" cat="Servo 25 CV Group" desc="Servo 25 MSB end point" info="Servo 25 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="661" cat="Servo 25 CV Group" desc="Servo 25 Speed" info="Servo 25 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="662" cat="Servo 25 CV Group" desc="Servo 25 Step" info="Servo 25 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="663" cat="Servo 26 CV Group" desc="Servo 26 LSB start point" info="Servo 26 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="664" cat="Servo 26 CV Group" desc="Servo 26 MSB start point" info="Servo 26 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="665" cat="Servo 26 CV Group" desc="Servo 26 LSB end point" info="Servo 26 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="666" cat="Servo 26 CV Group" desc="Servo 26 MSB end point" info="Servo 26 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="667" cat="Servo 26 CV Group" desc="Servo 26 Speed" info="Servo 26 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="668" cat="Servo 26 CV Group" desc="Servo 26 Step" info="Servo 26 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="669" cat="Servo 27 CV Group" desc="Servo 27 LSB start point" info="Servo 27 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="670" cat="Servo 27 CV Group" desc="Servo 27 MSB start point" info="Servo 27 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="671" cat="Servo 27 CV Group" desc="Servo 27 LSB end point" info="Servo 27 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="672" cat="Servo 27 CV Group" desc="Servo 27 MSB end point" info="Servo 27 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="673" cat="Servo 27 CV Group" desc="Servo 27 Speed" info="Servo 27 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="674" cat="Servo 27 CV Group" desc="Servo 27 Step" info="Servo 27 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="675" cat="Servo 28 CV Group" desc="Servo 28 LSB start point" info="Servo 28 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="676" cat="Servo 28 CV Group" desc="Servo 28 MSB start point" info="Servo 28 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="677" cat="Servo 28 CV Group" desc="Servo 28 LSB end point" info="Servo 28 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="678" cat="Servo 28 CV Group" desc="Servo 28 MSB end point" info="Servo 28 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="679" cat="Servo 28 CV Group" desc="Servo 28 Speed" info="Servo 28 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="680" cat="Servo 28 CV Group" desc="Servo 28 Step" info="Servo 28 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="681" cat="Servo 29 CV Group" desc="Servo 29 LSB start point" info="Servo 29 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="682" cat="Servo 29 CV Group" desc="Servo 29 MSB start point" info="Servo 29 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="683" cat="Servo 29 CV Group" desc="Servo 29 LSB end point" info="Servo 29 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="684" cat="Servo 29 CV Group" desc="Servo 29 MSB end point" info="Servo 29 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="685" cat="Servo 29 CV Group" desc="Servo 29 Speed" info="Servo 29 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="686" cat="Servo 29 CV Group" desc="Servo 29 Step" info="Servo 29 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="687" cat="Servo 30 CV Group" desc="Servo 30 LSB start point" info="Servo 30 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="688" cat="Servo 30 CV Group" desc="Servo 30 MSB start point" info="Servo 30 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="689" cat="Servo 30 CV Group" desc="Servo 30 LSB end point" info="Servo 30 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="690" cat="Servo 30 CV Group" desc="Servo 30 MSB end point" info="Servo 30 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="691" cat="Servo 30 CV Group" desc="Servo 30 Speed" info="Servo 30 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="692" cat="Servo 30 CV Group" desc="Servo 30 Step" info="Servo 30 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="693" cat="Servo 31 CV Group" desc="Servo 31 LSB start point" info="Servo 31 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="694" cat="Servo 31 CV Group" desc="Servo 31 MSB start point" info="Servo 31 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="695" cat="Servo 31 CV Group" desc="Servo 31 LSB end point" info="Servo 31 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="696" cat="Servo 31 CV Group" desc="Servo 31 MSB end point" info="Servo 31 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="697" cat="Servo 31 CV Group" desc="Servo 31 Speed" info="Servo 31 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="698" cat="Servo 31 CV Group" desc="Servo 31 Step" info="Servo 31 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="699" cat="Servo 32 CV Group" desc="Servo 32 LSB start point" info="Servo 32 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="700" cat="Servo 32 CV Group" desc="Servo 32 MSB start point" info="Servo 32 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="701" cat="Servo 32 CV Group" desc="Servo 32 LSB end point" info="Servo 32 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="702" cat="Servo 32 CV Group" desc="Servo 32 MSB end point" info="Servo 32 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="703" cat="Servo 32 CV Group" desc="Servo 32 Speed" info="Servo 32 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="704" cat="Servo 32 CV Group" desc="Servo 32 Step" info="Servo 32 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="705" cat="Servo 33 CV Group" desc="Servo 33 LSB start point" info="Servo 33 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="706" cat="Servo 33 CV Group" desc="Servo 33 MSB start point" info="Servo 33 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="707" cat="Servo 33 CV Group" desc="Servo 33 LSB end point" info="Servo 33 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="708" cat="Servo 33 CV Group" desc="Servo 33 MSB end point" info="Servo 33 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="709" cat="Servo 33 CV Group" desc="Servo 33 Speed" info="Servo 33 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="710" cat="Servo 33 CV Group" desc="Servo 33 Step" info="Servo 33 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="711" cat="Servo 34 CV Group" desc="Servo 34 LSB start point" info="Servo 34 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="712" cat="Servo 34 CV Group" desc="Servo 34 MSB start point" info="Servo 34 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="713" cat="Servo 34 CV Group" desc="Servo 34 LSB end point" info="Servo 34 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="714" cat="Servo 34 CV Group" desc="Servo 34 MSB end point" info="Servo 34 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="715" cat="Servo 34 CV Group" desc="Servo 34 Speed" info="Servo 34 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="716" cat="Servo 34 CV Group" desc="Servo 34 Step" info="Servo 34 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="717" cat="Servo 35 CV Group" desc="Servo 35 LSB start point" info="Servo 35 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="718" cat="Servo 35 CV Group" desc="Servo 35 MSB start point" info="Servo 35 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="719" cat="Servo 35 CV Group" desc="Servo 35 LSB end point" info="Servo 35 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="720" cat="Servo 35 CV Group" desc="Servo 35 MSB end point" info="Servo 35 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="721" cat="Servo 35 CV Group" desc="Servo 35 Speed" info="Servo 35 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="722" cat="Servo 35 CV Group" desc="Servo 35 Step" info="Servo 35 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="723" cat="Servo 36 CV Group" desc="Servo 36 LSB start point" info="Servo 36 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="724" cat="Servo 36 CV Group" desc="Servo 36 MSB start point" info="Servo 36 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="725" cat="Servo 36 CV Group" desc="Servo 36 LSB end point" info="Servo 36 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="726" cat="Servo 36 CV Group" desc="Servo 36 MSB end point" info="Servo 36 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="727" cat="Servo 36 CV Group" desc="Servo 36 Speed" info="Servo 36 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="728" cat="Servo 36 CV Group" desc="Servo 36 Step" info="Servo 36 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="729" cat="Servo 37 CV Group" desc="Servo 37 LSB start point" info="Servo 37 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="730" cat="Servo 37 CV Group" desc="Servo 37 MSB start point" info="Servo 37 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="731" cat="Servo 37 CV Group" desc="Servo 37 LSB end point" info="Servo 37 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="732" cat="Servo 37 CV Group" desc="Servo 37 MSB end point" info="Servo 37 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="733" cat="Servo 37 CV Group" desc="Servo 37 Speed" info="Servo 37 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="734" cat="Servo 37 CV Group" desc="Servo 37 Step" info="Servo 37 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="735" cat="Servo 38 CV Group" desc="Servo 38 LSB start point" info="Servo 38 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="736" cat="Servo 38 CV Group" desc="Servo 38 MSB start point" info="Servo 38 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="737" cat="Servo 38 CV Group" desc="Servo 38 LSB end point" info="Servo 38 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="738" cat="Servo 38 CV Group" desc="Servo 38 MSB end point" info="Servo 38 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="739" cat="Servo 38 CV Group" desc="Servo 38 Speed" info="Servo 38 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="740" cat="Servo 38 CV Group" desc="Servo 38 Step" info="Servo 38 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="741" cat="Servo 39 CV Group" desc="Servo 39 LSB start point" info="Servo 39 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="742" cat="Servo 39 CV Group" desc="Servo 39 MSB start point" info="Servo 39 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="743" cat="Servo 39 CV Group" desc="Servo 39 LSB end point" info="Servo 39 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="744" cat="Servo 39 CV Group" desc="Servo 39 MSB end point" info="Servo 39 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="745" cat="Servo 39 CV Group" desc="Servo 39 Speed" info="Servo 39 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="746" cat="Servo 39 CV Group" desc="Servo 39 Step" info="Servo 39 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="747" cat="Servo 40 CV Group" desc="Servo 40 LSB start point" info="Servo 40 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="748" cat="Servo 40 CV Group" desc="Servo 40 MSB start point" info="Servo 40 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="749" cat="Servo 40 CV Group" desc="Servo 40 LSB end point" info="Servo 40 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="750" cat="Servo 40 CV Group" desc="Servo 40 MSB end point" info="Servo 40 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="751" cat="Servo 40 CV Group" desc="Servo 40 Speed" info="Servo 40 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="752" cat="Servo 40 CV Group" desc="Servo 40 Step" info="Servo 40 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="753" cat="Servo 41 CV Group" desc="Servo 41 LSB start point" info="Servo 41 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="754" cat="Servo 41 CV Group" desc="Servo 41 MSB start point" info="Servo 41 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="755" cat="Servo 41 CV Group" desc="Servo 41 LSB end point" info="Servo 41 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="756" cat="Servo 41 CV Group" desc="Servo 41 MSB end point" info="Servo 41 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="757" cat="Servo 41 CV Group" desc="Servo 41 Speed" info="Servo 41 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="758" cat="Servo 41 CV Group" desc="Servo 41 Step" info="Servo 41 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="759" cat="Servo 42 CV Group" desc="Servo 42 LSB start point" info="Servo 42 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="760" cat="Servo 42 CV Group" desc="Servo 42 MSB start point" info="Servo 42 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="761" cat="Servo 42 CV Group" desc="Servo 42 LSB end point" info="Servo 42 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="762" cat="Servo 42 CV Group" desc="Servo 42 MSB end point" info="Servo 42 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="763" cat="Servo 42 CV Group" desc="Servo 42 Speed" info="Servo 42 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="764" cat="Servo 42 CV Group" desc="Servo 42 Step" info="Servo 42 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="765" cat="Servo 43 CV Group" desc="Servo 43 LSB start point" info="Servo 43 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="766" cat="Servo 43 CV Group" desc="Servo 43 MSB start point" info="Servo 43 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="767" cat="Servo 43 CV Group" desc="Servo 43 LSB end point" info="Servo 43 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="768" cat="Servo 43 CV Group" desc="Servo 43 MSB end point" info="Servo 43 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="769" cat="Servo 43 CV Group" desc="Servo 43 Speed" info="Servo 43 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="770" cat="Servo 43 CV Group" desc="Servo 43 Step" info="Servo 43 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="771" cat="Servo 44 CV Group" desc="Servo 44 LSB start point" info="Servo 44 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="772" cat="Servo 44 CV Group" desc="Servo 44 MSB start point" info="Servo 44 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="773" cat="Servo 44 CV Group" desc="Servo 44 LSB end point" info="Servo 44 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="774" cat="Servo 44 CV Group" desc="Servo 44 MSB end point" info="Servo 44 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="775" cat="Servo 44 CV Group" desc="Servo 44 Speed" info="Servo 44 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="776" cat="Servo 44 CV Group" desc="Servo 44 Step" info="Servo 44 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="777" cat="Servo 45 CV Group" desc="Servo 45 LSB start point" info="Servo 45 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="778" cat="Servo 45 CV Group" desc="Servo 45 MSB start point" info="Servo 45 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="779" cat="Servo 45 CV Group" desc="Servo 45 LSB end point" info="Servo 45 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="780" cat="Servo 45 CV Group" desc="Servo 45 MSB end point" info="Servo 45 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="781" cat="Servo 45 CV Group" desc="Servo 45 Speed" info="Servo 45 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="782" cat="Servo 45 CV Group" desc="Servo 45 Step" info="Servo 45 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="783" cat="Servo 46 CV Group" desc="Servo 46 LSB start point" info="Servo 46 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="784" cat="Servo 46 CV Group" desc="Servo 46 MSB start point" info="Servo 46 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="785" cat="Servo 46 CV Group" desc="Servo 46 LSB end point" info="Servo 46 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="786" cat="Servo 46 CV Group" desc="Servo 46 MSB end point" info="Servo 46 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="787" cat="Servo 46 CV Group" desc="Servo 46 Speed" info="Servo 46 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="788" cat="Servo 46 CV Group" desc="Servo 46 Step" info="Servo 46 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="789" cat="Servo 47 CV Group" desc="Servo 47 LSB start point" info="Servo 47 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="790" cat="Servo 47 CV Group" desc="Servo 47 MSB start point" info="Servo 47 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="791" cat="Servo 47 CV Group" desc="Servo 47 LSB end point" info="Servo 47 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="792" cat="Servo 47 CV Group" desc="Servo 47 MSB end point" info="Servo 47 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="793" cat="Servo 47 CV Group" desc="Servo 47 Speed" info="Servo 47 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="794" cat="Servo 47 CV Group" desc="Servo 47 Step" info="Servo 47 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="795" cat="Servo 48 CV Group" desc="Servo 48 LSB start point" info="Servo 48 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="796" cat="Servo 48 CV Group" desc="Servo 48 MSB start point" info="Servo 48 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="797" cat="Servo 48 CV Group" desc="Servo 48 LSB end point" info="Servo 48 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="798" cat="Servo 48 CV Group" desc="Servo 48 MSB end point" info="Servo 48 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="799" cat="Servo 48 CV Group" desc="Servo 48 Speed" info="Servo 48 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="800" cat="Servo 48 CV Group" desc="Servo 48 Step" info="Servo 48 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="801" cat="Servo 49 CV Group" desc="Servo 49 LSB start point" info="Servo 49 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="802" cat="Servo 49 CV Group" desc="Servo 49 MSB start point" info="Servo 49 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="803" cat="Servo 49 CV Group" desc="Servo 49 LSB end point" info="Servo 49 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="804" cat="Servo 49 CV Group" desc="Servo 49 MSB end point" info="Servo 49 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="805" cat="Servo 49 CV Group" desc="Servo 49 Speed" info="Servo 49 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="806" cat="Servo 49 CV Group" desc="Servo 49 Step" info="Servo 49 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="807" cat="Servo 50 CV Group" desc="Servo 50 LSB start point" info="Servo 50 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="808" cat="Servo 50 CV Group" desc="Servo 50 MSB start point" info="Servo 50 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="809" cat="Servo 50 CV Group" desc="Servo 50 LSB end point" info="Servo 50 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="810" cat="Servo 50 CV Group" desc="Servo 50 MSB end point" info="Servo 50 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="811" cat="Servo 50 CV Group" desc="Servo 50 Speed" info="Servo 50 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="812" cat="Servo 50 CV Group" desc="Servo 50 Step" info="Servo 50 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="813" cat="Servo 51 CV Group" desc="Servo 51 LSB start point" info="Servo 51 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="814" cat="Servo 51 CV Group" desc="Servo 51 MSB start point" info="Servo 51 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="815" cat="Servo 51 CV Group" desc="Servo 51 LSB end point" info="Servo 51 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="816" cat="Servo 51 CV Group" desc="Servo 51 MSB end point" info="Servo 51 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="817" cat="Servo 51 CV Group" desc="Servo 51 Speed" info="Servo 51 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="818" cat="Servo 51 CV Group" desc="Servo 51 Step" info="Servo 51 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="819" cat="Servo 52 CV Group" desc="Servo 52 LSB start point" info="Servo 52 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="820" cat="Servo 52 CV Group" desc="Servo 52 MSB start point" info="Servo 52 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="821" cat="Servo 52 CV Group" desc="Servo 52 LSB end point" info="Servo 52 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="822" cat="Servo 52 CV Group" desc="Servo 52 MSB end point" info="Servo 52 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="823" cat="Servo 52 CV Group" desc="Servo 52 Speed" info="Servo 52 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="824" cat="Servo 52 CV Group" desc="Servo 52 Step" info="Servo 52 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="825" cat="Servo 53 CV Group" desc="Servo 53 LSB start point" info="Servo 53 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="826" cat="Servo 53 CV Group" desc="Servo 53 MSB start point" info="Servo 53 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="827" cat="Servo 53 CV Group" desc="Servo 53 LSB end point" info="Servo 53 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="828" cat="Servo 53 CV Group" desc="Servo 53 MSB end point" info="Servo 53 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="829" cat="Servo 53 CV Group" desc="Servo 53 Speed" info="Servo 53 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="830" cat="Servo 53 CV Group" desc="Servo 53 Step" info="Servo 53 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="831" cat="Servo 54 CV Group" desc="Servo 54 LSB start point" info="Servo 54 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="832" cat="Servo 54 CV Group" desc="Servo 54 MSB start point" info="Servo 54 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="833" cat="Servo 54 CV Group" desc="Servo 54 LSB end point" info="Servo 54 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="834" cat="Servo 54 CV Group" desc="Servo 54 MSB end point" info="Servo 54 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="835" cat="Servo 54 CV Group" desc="Servo 54 Speed" info="Servo 54 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="836" cat="Servo 54 CV Group" desc="Servo 54 Step" info="Servo 54 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="837" cat="Servo 55 CV Group" desc="Servo 55 LSB start point" info="Servo 55 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="838" cat="Servo 55 CV Group" desc="Servo 55 MSB start point" info="Servo 55 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="839" cat="Servo 55 CV Group" desc="Servo 55 LSB end point" info="Servo 55 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="840" cat="Servo 55 CV Group" desc="Servo 55 MSB end point" info="Servo 55 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="841" cat="Servo 55 CV Group" desc="Servo 55 Speed" info="Servo 55 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="842" cat="Servo 55 CV Group" desc="Servo 55 Step" info="Servo 55 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="843" cat="Servo 56 CV Group" desc="Servo 56 LSB start point" info="Servo 56 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="844" cat="Servo 56 CV Group" desc="Servo 56 MSB start point" info="Servo 56 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="845" cat="Servo 56 CV Group" desc="Servo 56 LSB end point" info="Servo 56 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="846" cat="Servo 56 CV Group" desc="Servo 56 MSB end point" info="Servo 56 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="847" cat="Servo 56 CV Group" desc="Servo 56 Speed" info="Servo 56 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="848" cat="Servo 56 CV Group" desc="Servo 56 Step" info="Servo 56 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="849" cat="Servo 57 CV Group" desc="Servo 57 LSB start point" info="Servo 57 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="850" cat="Servo 57 CV Group" desc="Servo 57 MSB start point" info="Servo 57 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="851" cat="Servo 57 CV Group" desc="Servo 57 LSB end point" info="Servo 57 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="852" cat="Servo 57 CV Group" desc="Servo 57 MSB end point" info="Servo 57 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="853" cat="Servo 57 CV Group" desc="Servo 57 Speed" info="Servo 57 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="854" cat="Servo 57 CV Group" desc="Servo 57 Step" info="Servo 57 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="855" cat="Servo 58 CV Group" desc="Servo 58 LSB start point" info="Servo 58 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="856" cat="Servo 58 CV Group" desc="Servo 58 MSB start point" info="Servo 58 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="857" cat="Servo 58 CV Group" desc="Servo 58 LSB end point" info="Servo 58 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="858" cat="Servo 58 CV Group" desc="Servo 58 MSB end point" info="Servo 58 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="859" cat="Servo 58 CV Group" desc="Servo 58 Speed" info="Servo 58 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="860" cat="Servo 58 CV Group" desc="Servo 58 Step" info="Servo 58 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="861" cat="Servo 59 CV Group" desc="Servo 59 LSB start point" info="Servo 59 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="862" cat="Servo 59 CV Group" desc="Servo 59 MSB start point" info="Servo 59 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="863" cat="Servo 59 CV Group" desc="Servo 59 LSB end point" info="Servo 59 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="864" cat="Servo 59 CV Group" desc="Servo 59 MSB end point" info="Servo 59 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="865" cat="Servo 59 CV Group" desc="Servo 59 Speed" info="Servo 59 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="866" cat="Servo 59 CV Group" desc="Servo 59 Step" info="Servo 59 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="867" cat="Servo 60 CV Group" desc="Servo 60 LSB start point" info="Servo 60 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="868" cat="Servo 60 CV Group" desc="Servo 60 MSB start point" info="Servo 60 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="869" cat="Servo 60 CV Group" desc="Servo 60 LSB end point" info="Servo 60 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="870" cat="Servo 60 CV Group" desc="Servo 60 MSB end point" info="Servo 60 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="871" cat="Servo 60 CV Group" desc="Servo 60 Speed" info="Servo 60 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="872" cat="Servo 60 CV Group" desc="Servo 60 Step" info="Servo 60 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="873" cat="Servo 61 CV Group" desc="Servo 61 LSB start point" info="Servo 61 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="874" cat="Servo 61 CV Group" desc="Servo 61 MSB start point" info="Servo 61 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="875" cat="Servo 61 CV Group" desc="Servo 61 LSB end point" info="Servo 61 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="876" cat="Servo 61 CV Group" desc="Servo 61 MSB end point" info="Servo 61 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="877" cat="Servo 61 CV Group" desc="Servo 61 Speed" info="Servo 61 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="878" cat="Servo 61 CV Group" desc="Servo 61 Step" info="Servo 61 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="879" cat="Servo 62 CV Group" desc="Servo 62 LSB start point" info="Servo 62 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="880" cat="Servo 62 CV Group" desc="Servo 62 MSB start point" info="Servo 62 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="881" cat="Servo 62 CV Group" desc="Servo 62 LSB end point" info="Servo 62 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="882" cat="Servo 62 CV Group" desc="Servo 62 MSB end point" info="Servo 62 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="883" cat="Servo 62 CV Group" desc="Servo 62 Speed" info="Servo 62 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="884" cat="Servo 62 CV Group" desc="Servo 62 Step" info="Servo 62 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="885" cat="Servo 63 CV Group" desc="Servo 63 LSB start point" info="Servo 63 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="886" cat="Servo 63 CV Group" desc="Servo 63 MSB start point" info="Servo 63 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="887" cat="Servo 63 CV Group" desc="Servo 63 LSB end point" info="Servo 63 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="888" cat="Servo 63 CV Group" desc="Servo 63 MSB end point" info="Servo 63 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="889" cat="Servo 63 CV Group" desc="Servo 63 Speed" info="Servo 63 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="890" cat="Servo 63 CV Group" desc="Servo 63 Step" info="Servo 63 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 
+<cvbyte nr="891" cat="Servo 64 CV Group" desc="Servo 64 LSB start point" info="Servo 64 start point LSB (LED 'off' value)"/> 
+<cvbyte nr="892" cat="Servo 64 CV Group" desc="Servo 64 MSB start point" info="Servo 64 MSB start point (LED 'off' value)"/> 
+<cvbyte nr="893" cat="Servo 64 CV Group" desc="Servo 64 LSB end point" info="Servo 64 LSB end point (LED 'on' brightness level"/> 
+<cvbyte nr="894" cat="Servo 64 CV Group" desc="Servo 64 MSB end point" info="Servo 64 MSB end point (LED 'on' brightness level)"/> 
+<cvbyte nr="895" cat="Servo 64 CV Group" desc="Servo 64 Speed" info="Servo 64 Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)"/> 
+<cvbyte nr="896" cat="Servo 64 CV Group" desc="Servo 64 Step" info="Servo 64 step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF."/> 

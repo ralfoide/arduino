@@ -1,0 +1,62 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin:/usr/local/bin:/sbin/usr/sbin:/usr/local/sbin
+# all of this is the convert srcpd CV gets and sets 
+# into something more user friendly like servo number and CV name.
+# "program_name <number>" returns config file key. 
+CONF="/usr/local/etc/servo.conf"
+NUM=$1
+VALUE=$2
+#DIFF=`expr $NUM - 253`
+DIFF=`expr $NUM - 513`
+
+#echo "diff = $DIFF"
+
+SERVNUM=`expr $DIFF / 6`
+SERVNUM2=`expr $SERVNUM + 1`
+
+#echo "servonum = $SERVNUM"
+#echo "servonum2 = $SERVNUM2"
+
+#OFF=`expr $DIFF \* $SERVNUM`
+OFF=`expr  $SERVNUM \* 6`
+OFF=`expr $DIFF - $OFF + 1`
+
+#echo "offset = $OFF"
+if [ $OFF -eq 1 ]
+then
+CVDESC="Start-low"
+fi
+if [ $OFF -eq 2 ]
+then
+CVDESC="Start-high"
+fi
+if [ $OFF -eq 3 ]
+then
+CVDESC="End-low"
+fi
+if [ $OFF -eq 4 ]
+then
+CVDESC="End-high"
+fi
+if [ $OFF -eq 5 ]
+then
+CVDESC="Speed"
+fi
+if [ $OFF -eq 6 ]
+then
+CVDESC="Step"
+if [ $VALUE -eq 0 ]
+then 
+VALUE="1"
+fi
+fi
+
+KEY="Servo$SERVNUM2.$CVDESC"
+#echo "key = >$KEY<"
+
+grep -v $KEY $CONF   > /tmp/setsm.$$
+echo "$KEY $VALUE" >> /tmp/setsm.$$
+cat /tmp/setsm.$$ |  sort -n -k1.6,1.7 > /usr/local/etc/servo.conf
+rm /tmp/setsm.$$
+#echo $DATA

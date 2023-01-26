@@ -1,0 +1,100 @@
+To install the srcp-Rpi you will need to install the I2C bus drivers.  To do that perform the follwing as root.
+
+1 - apt-get install python-smbus
+2 - apt-get install i2c-tools
+3 - apt-get install libxml2-dev
+
+next you need to modify 2 files.
+edit /etc/modprobe.d/raspi-blacklist.conf 
+comment out the line i2c-bcm2708
+
+Then add to /etc/modules the following two lines.
+
+i2c-dev
+i2c-bcm2708
+
+
+shutdown the Rpi
+
+Install the Adafruid 16 port servo card.  Do not change it's default address.
+boot the Rpi.
+run the following as root
+
+ i2cdetect -y 1
+
+You should see the following
+
+----------------------------------------------------
+
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: 40 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- -- -- -- --                         
+
+----------------------------------------------------
+
+
+next execute the command
+i2cdump 1 0x40
+
+you should see the following (after typing Y when prompted
+----------------------------------------------------
+No size specified (using byte-data access)
+WARNING! This program can confuse your I2C bus, cause data loss and worse!
+I will probe file /dev/i2c-1, address 0x40, mode byte
+Continue? [Y/n]
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f    0123456789abcdef
+00: 00 04 e2 e4 e8 e0 00 00 58 02 00 00 58 02 00 00    .?????..X?..X?..
+10: 00 10 00 00 00 10 00 00 00 10 00 00 00 10 00 00    .?...?...?...?..
+20: 00 10 00 00 00 10 00 00 00 10 00 00 00 10 00 00    .?...?...?...?..
+30: 00 10 00 00 00 10 00 00 00 10 00 00 00 10 00 00    .?...?...?...?..
+40: 00 10 00 00 00 10 XX XX XX XX XX XX XX XX XX XX    .?...?XXXXXXXXXX
+50: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+60: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+70: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+80: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+90: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+a0: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+b0: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+c0: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+d0: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+e0: XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX    XXXXXXXXXXXXXXXX
+f0: XX XX XX XX XX XX XX XX XX XX 00 00 00 00 65 00    XXXXXXXXXX....e.
+
+----------------------------------------------)
+
+download the srcpd2.2.4-rpi.tar package.  A good place to put it is in /root
+
+extract tar 
+tar -xvzf srcpd-2.1.4.tar.tgz 
+
+Now install the srcpd package.  All of these commands must be done as root.
+cd srcpd-2.1.4-rpi
+cd scripts
+cp -r * /
+update-rc.d srcp defaults
+cd ..
+
+/etc/init.d/srcp start
+now the install is complete.
+
+Test the servo controller by executing /usr/local/bin/exx1  This program will move the 2nd servo back and forth.
+
+There are two more files that Rocrail needs. 
+They are in the Rocrail dir and are Rpi16.xml and Rpi32.xml
+Copy them to the Rocrail user area.
+
+Typically that are is "My Documents/Rocrail" on windows.
+
+create a srcp controller in Rocrail
+Set up the ports so that accessorys use bus 2
+create a loco in Rocrail and call it something like RPI-Servo
+goto rocpro, select that loco, configure the xml to use and see if you can read CVs for a servo.  The servo configuration is preloaded with some default values.
+
+Next create a switch and configure it with address of 1 and a port of 1.
+

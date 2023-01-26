@@ -1,0 +1,60 @@
+#!/usr/bin/python
+
+from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_I2C import Adafruit_I2C
+import time
+import sys
+
+regaddr=0x10
+# ===========================================================================
+f = open('/usr/local/etc/.servo1.state', 'r')
+state = f.read()
+print state,
+# ===========================================================================
+
+# Initialise the PWM device using the default address
+# bmp = PWM(0x40, debug=True)
+pwm = PWM(0x40, debug=False)
+i2c=Adafruit_I2C (0x40, 1)
+servoMin = 201  # Min pulse length out of 4096
+servoMax = 601  # Max pulse length out of 4096
+motor = 0
+regaddr = motor + 8
+def setServoPulse(channel, pulse):
+  pulseLength = 1000000                   # 1,000,000 us per second
+  pulseLength /= 10                       # 60 Hz
+  #print "%d us per period" % pulseLength
+  pulseLength /= 4096                     # 12 bits of resolution
+  #print "%d us per bit" % pulseLength
+  pulse *= 1000
+  pulse /= pulseLength
+  pwm.setPWM(channel, 0, pulse)
+
+pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+
+result = i2c.readU16Rev(regaddr)
+print "u16  %d" %result
+if result == servoMax:
+	sys.exit(0)
+
+pwm.setPWM(motor , 0, result)
+
+
+#pwm.setPWM(motor , 0, servoMin)
+result = i2c.readU16Rev(regaddr)
+#print "u16  %d" %result
+
+limit = result
+while  (limit < servoMax + 1 ) :
+      pwm.setPWM( motor, 0, limit )
+      result = i2c.readU16Rev(regaddr)
+#      print "u16  = %d" %result
+      time.sleep(10/1000.0)
+      limit += 1
+
+f = open('/usr/local/etc/.servo1.state','w')
+print "%d" %result
+f.write (str(result))
+f.write ("\n")
+f.close()
+

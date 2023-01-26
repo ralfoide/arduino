@@ -1,0 +1,19 @@
+#!/bin/sh
+echo "Probing i2c bus #1  
+
+Numbers should appear in the matrix displayed
+assuming that there are I2C devices connected to the I2C bus.  The Adafruit 
+LED Servo controller is at 0x40 by default so that address is 
+supposed to be there.
+
+"
+
+i2cdetect -y 1
+echo ""
+echo "If no devices at address 0x40 , the next command will result in XX
+at every address"
+echo "Press enter to continue"
+read foo
+
+i2cdump -y 1 0x40
+

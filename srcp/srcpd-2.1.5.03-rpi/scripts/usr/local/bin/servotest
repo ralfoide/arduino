@@ -1,0 +1,41 @@
+#!/usr/bin/python
+
+from Adafruit_PWM_Servo_Driver import PWM
+import time
+
+# ===========================================================================
+# Example Code
+# ===========================================================================
+
+# Initialise the PWM device using the default address
+# bmp = PWM(0x40, debug=True)
+pwm = PWM(0x40, debug=True)
+
+servoMin = 600  # Min pulse length out of 4096
+servoMax = 400  # Max pulse length out of 4096
+
+
+pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+#while (True):
+  # Change speed of continuous servo on channel O
+pwm.setPWM(0 , 0, servoMin)
+print "f1"
+time.sleep(1/100)
+print "f1"
+pwm.setPWM(0, 0, servoMax+20)
+print "f1"
+time.sleep(1/100)
+print "f1"
+pwm.setPWM(0, 0, servoMax+18)
+pwm.setPWM(0, 0, servoMax+16)
+pwm.setPWM(0, 0, servoMax+14)
+pwm.setPWM(0, 0, servoMax+12)
+pwm.setPWM(0, 0, servoMax+10)
+pwm.setPWM(0, 0, servoMax+8)
+pwm.setPWM(0, 0, servoMax+6)
+pwm.setPWM(0, 0, servoMax+4)
+pwm.setPWM(0, 0, servoMax+2)
+pwm.setPWM(0, 0, servoMax)
+pwm.setPWM(0, 0, servoMax)
+
+pwm.setPWM(0, 1024, 3072)

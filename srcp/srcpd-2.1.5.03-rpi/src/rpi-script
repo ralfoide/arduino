@@ -1,0 +1,5 @@
+#!/bin/sh
+echo $0 >> /tmp/rpi-script.out
+echo $1 >> /tmp/rpi-script.out
+echo $2 >> /tmp/rpi-script.out
+echo $3 >> /tmp/rpi-script.out

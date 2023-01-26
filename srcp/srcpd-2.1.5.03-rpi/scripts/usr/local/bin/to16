@@ -1,0 +1,9 @@
+#!/bin/sh
+SEH=16
+SEL=0
+SEH=`expr $SEH \* 256`
+SEH=`expr $SEH + $SEL`
+printf '%x\n' $SEH
+printf '%d' $SEH
+#echo "SL = $SL" 
+

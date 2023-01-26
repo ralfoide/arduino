@@ -1,0 +1,44 @@
+#!/usr/bin/python
+import socket
+import time
+
+dummy = ""
+address = 1
+s = socket.socket()
+s.connect(("127.0.0.1",4303))
+dummy =  s.recv(256)
+#print dummy
+s.send("go\n")
+dummy = s.recv(256)
+s.send("set 0 gm 0 0 switch states load start\n")
+dummy =  s.recv(256)
+#print dummy
+
+for address in range(1, 16):
+   #print "range %d" % (x)
+
+   fbstatefile = "/usr/local/etc/.fb" + str(address) + ".state"
+
+   f = open(fbstatefile, 'r')
+   state = f.read()
+   #print "state - %s" %state
+   cmd = "set 2 GA" + str(address) + " " + state 
+   #cmd = "set 2 GA " + str(address) + " " + state + "  \n"
+   #print cmd
+   
+   
+   s.send(cmd)
+   dummy =  s.recv(256)
+
+   #print dummy
+
+s.send ("SET 1 GA 40 1 1 -1\n")
+dummy =  s.recv(256)
+s.send ("SET 1 SM 40 CV 29 136\n")
+dummy =  s.recv(256)
+s.send ("SET 1 SM 40 CV 18 40\n")
+dummy =  s.recv(256)
+s.send("set 0 gm 0 0 switch states loaded\n")
+dummy =  s.recv(256)
+s.close()
+   

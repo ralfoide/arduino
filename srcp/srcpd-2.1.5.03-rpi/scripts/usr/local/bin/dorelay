@@ -1,0 +1,154 @@
+#!/usr/bin/python
+#import os
+#import time
+import sys
+import getopt
+import smbus
+bus = smbus.SMBus(1)
+r1_off=0xfe
+r2_off=0xfd
+r3_off=0xfb
+r4_off=0xf7
+r5_off=0xef
+r6_off=0xdf
+r7_off=0xbf
+r8_off=0x7f
+r1_on=0x01
+r2_on=0x02
+r3_on=0x04
+r4_on=0x08
+r5_on=0x10
+r6_on=0x20
+r7_on=0x40
+r8_on=0x80
+
+statefile = "/usr/local/etc/relay.state"
+
+def main(argv):
+   relay_num = 0
+   state = 0
+   try:
+      opts, args = getopt.getopt(argv,"hr:s:",["relat_num=","state="])
+   except getopt.GetoptError:
+      print 'test.py -r <relay_num> -s <on|off>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'dorelay.py -r <relay_num> -s <state (0=off 1=on)>'
+         sys.exit()
+      elif opt in ("-r", "--relay_num"):
+         relay_num = int(arg)
+      elif opt in ("-s", "--state"):
+         state = int(arg)
+   if (state == "on") or (state == "ON"):
+      state = 1
+   if (state == "off") or (state == "OFF"):
+      state = 0
+   
+
+   address = 0x20
+   if 9 <= relay_num <= 16:
+      address=0x21
+      relay_num = relay_num - 8
+      statefile = "/usr/local/etc/relay-8-16.state"
+# set A7-A0 as output pins
+   bus.write_byte_data(address,0x00,0x00) 
+
+
+   newreg = 0
+#read the current state of the relays
+   register = bus.read_byte_data(address,0x0a)
+   #f = open(statefile, 'r')
+   #register = int(f.read())
+   #f.close()
+   if (state == 0 and relay_num == 1):
+         newreg=register & r1_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 2):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r2_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 3):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r3_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+         
+   if (state == 0 and relay_num == 4):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r4_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 5):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r5_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 6):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r6_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 7):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r7_off
+         bus.write_byte_data(address,0x0a,newreg) 
+         
+   if (state == 0 and relay_num == 8):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register & r8_off
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 1):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r1_on
+         bus.write_byte_data(address,0x0a,newreg) 
+   
+   if (state == 1 and relay_num == 2):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r2_on
+         bus.write_byte_data(address,0x0a,newreg) 
+   
+   if (state == 1 and relay_num == 3):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r3_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 4):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r4_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 5):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r5_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 6):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r6_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 7):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r7_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   if (state == 1 and relay_num == 8):
+         #register = bus.read_byte_data(address,0x0a)
+         newreg=register | r8_on
+         bus.write_byte_data(address,0x0a,newreg) 
+
+   print "old register state = %x" %register
+   print "new register state = %x" %newreg
+   string=""
+   f = open(statefile, 'w')
+   string= str(newreg)
+   f.write (string)
+   f.close()
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
+

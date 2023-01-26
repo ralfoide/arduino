@@ -1,0 +1,33 @@
+#!/bin/sh
+
+SERV=1
+CNT=513
+GRP=1
+
+cat xml-head
+
+#704 = 32 servos use 896 for 64 servos
+while [ $CNT -le 704 ]
+do
+
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV LSB start point\" info=\"Servo $SERV start point LSB (LED 'off' value)\"/> "
+CNT=`expr $CNT + 1`
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV MSB start point\" info=\"Servo $SERV MSB start point (LED 'off' value)\"/> "
+CNT=`expr $CNT + 1`
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV LSB end point\" info=\"Servo $SERV LSB end point (LED 'on' brightness level\"/> "
+CNT=`expr $CNT + 1`
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV MSB end point\" info=\"Servo $SERV MSB end point (LED 'on' brightness level)\"/> "
+CNT=`expr $CNT + 1`
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV Speed\" info=\"Servo $SERV Speed.  1/5000 second ticks (delay) between servo steps. (n * 0.2 milliseconds.)\"/> "
+
+CNT=`expr $CNT + 1`
+echo "<cvbyte nr=\"$CNT\" cat=\"Servo $GRP CV Group\" desc=\"Servo $SERV Step\" info=\"Servo $SERV step.  Because there are 4096 steps between fully OFF and Fully On, we need to count by 'n' to obtain instant ON or OFF.\"/> "
+
+CNT=`expr $CNT + 1`
+GRP=`expr $GRP + 1`
+
+
+SERV=`expr $SERV + 1`
+#echo $CNT
+#echo $SERV
+done

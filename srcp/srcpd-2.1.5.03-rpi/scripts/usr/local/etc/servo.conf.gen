@@ -1,0 +1,21 @@
+#!/bin/sh
+#Servo1.End-high 2
+#Servo1.End-low 120
+#Servo1.speed 0
+#Servo1.Start-high 0
+#Servo1.Start-low 250
+
+NUM=1
+VALUE=100
+while [ $NUM -le 16 ]
+do
+echo "Servo$NUM.Start-low 250"
+#
+echo "Servo$NUM.Start-high 0"
+echo "Servo$NUM.End-low 120"
+#
+echo "Servo$NUM.End-high 2"
+#
+echo "Servo$NUM.speed 10"
+NUM=`expr $NUM + 1 `
+done

@@ -1,0 +1,97 @@
+NOTE - If you want to install the Roc-Pi package, cd into RASPBERRY and read the instructions there.
+
+This is a addition and a bug fix to the original srcpd code which allows artitrary commands to be excuted on a Raspberri Pi  in response to an accessory or switch throw.
+
+		The way it works is srcpd takes the request to the Rpi bus,
+translates that to a filename of /usr/local/bin/rpi-b(n)-a(nn)-p(n) which then
+gets executed.  Example:  /usr/local/bin/rpi-b3-a7-p1  This mechanicsm in not used by the software package.  This is to permet users to write their own commands.
+
+A second file will also be executed if it exists.  It is called rpi-script 
+and it is called with arguments.  Example:
+ /usr/local/bin/rpi-script -b2 -a5 -p0
+This is the file that is utilized by the software package.
+
+The result is that with a little software the RPI can control devices 
+connected to it's GPIO.
+
+	The filenames that srcpd is going to attempt to execute is written to syslog.
+
+Here is a basic srcpd.conf entry:
+
+---------------------------------------------------------------------
+
+
+<?xml version="1.0"?>
+<srcpd version="2.1.0">
+<!-- Server Bus 0  -->
+<bus>
+	<server>
+		<tcp-port>4303</tcp-port>
+		<pid-file>/var/run/srcpd.pid</pid-file>
+		<username>root</username>
+		<groupname>root</groupname>
+	</server>
+	<verbosity>5</verbosity>
+</bus>
+
+<!-- loopback - bus 1 -->
+<bus>
+	<auto_power_on>yes</auto_power_on>
+	<verbosity>5</verbosity>
+	<loopback>
+		<number_gl>110</number_gl>
+		<number_fb>512</number_fb>
+		<number_ga>512</number_ga>
+	</loopback>
+</bus>
+
+<!-- rpi - bus 2 -->
+<bus>
+	<auto_power_on>yes</auto_power_on>
+	<verbosity>4</verbosity>
+	<device>/dev/null</device>
+	<Rpi>
+		<number_gl>110</number_gl>
+		<number_fb>512</number_fb>
+		<number_ga>512</number_ga>
+		<fb_delay_time_0>0</fb_delay_time_0>
+	</Rpi>
+</bus>
+<!-- rpi - bus 3 -->
+<bus>
+	<auto_power_on>yes</auto_power_on>
+	<verbosity>4</verbosity>
+	<device>/dev/null</device>
+	<Rpi>
+		<number_gl>110</number_gl>
+		<number_ga>512</number_ga>
+		<fb_delay_time_0>0</fb_delay_time_0>
+	</Rpi>
+</bus>
+<!-- rpi - bus 4 -->
+<bus>
+	<auto_power_on>yes</auto_power_on>
+	<verbosity>4</verbosity>
+	<device>/dev/null</device>
+	<Rpi>
+		<number_ga>512</number_ga>
+		<fb_delay_time_0>0</fb_delay_time_0>
+	</Rpi>
+</bus>
+</srcpd>
+
+---------------------------------------------------------------------
+
+building on a Rpi is easy.  Simply do that following
+
+sh configure
+make
+make install
+edit /usr/local/etc/srcpd.conf to suit
+run srcpd
+
+I welcome comments and suggestions.
+
+Richard Andrews
+
+Sat Apr 20 09:32:14 CDT 2013

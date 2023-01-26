@@ -1,0 +1,11 @@
+Bugs to fix
+-----------
+None as of July 14, 2013
+
+
+Features to implement
+---------------------
+* SRCP server reset
+* Event driven code for all modules using serial device
+  communication
+

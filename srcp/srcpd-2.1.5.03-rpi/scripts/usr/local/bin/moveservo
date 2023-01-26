@@ -1,0 +1,193 @@
+#!/usr/bin/python
+from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_I2C import Adafruit_I2C
+import time
+import sys
+import  getopt
+import  os
+import  socket
+statefile = ""
+swstatefile = ""
+fbstatefile = ""
+dummy = ""
+def main(argv):
+   try:
+      speed = ''
+      address = ''
+      position = ''
+      action = ''
+      step = 1
+      cmd = ''
+      opts, args = getopt.getopt(argv,"hs:S:a:p:t:",["speed=","--step","address=","position=","action="])
+   except getopt.GetoptError:
+      print 'moveservo -S <step> -t <action> -s <speed> -a <address -p <position>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'moveservo.py -s <speed> -a <address> -p <position>'
+         sys.exit()
+      elif opt in ("-a", "--address"):
+         address = arg
+      elif opt in ("-s", "--speed"):
+         speed = arg
+      elif opt in ("-p", "--position"):
+         position = arg
+      elif opt in ("-t", "--action"):
+         action = arg
+      elif opt in ("-S", "--step"):
+         step = int(arg)
+   #print 'addr is ', address
+   #print 'positon  is ', position
+   #print 'speed is ', speed
+   #print 'Step = ' ,step
+   if step == 0:
+	step +=1
+   #print 'Step = ' ,step
+# redirect stdout to /dev/null - the reason for that is so that things don't get ugly with regard to socket 
+# commuinications.  If desired, uncommenting various print statements  and defining a regular file instead of /dev/null
+# will create a log/debugging file.
+#
+   #sys.stdout = open("/dev/null", "w")
+   #sys.stdout = open("/tmp/moveservo.log", "w")
+   #if (int(position) < 110)  or (int (position) > 750):
+      #print "ERROR -positon out of range"
+      #print "correct and resubmit request"
+      #exit (1) 
+
+#the tmout value is the number of seconds to wait for a lockfile to be free.  In the case of an errant
+#lockfile, this is prevents a deadlock condition.
+   tmout = 20
+   lockfile = "/usr/local/tmp/.lockfile" + address
+   #print lockfile
+   while os.path.exists (lockfile):
+        time.sleep (1)
+        tmout = tmout - 1
+        #print "lockfile exists - tmout = %i" %tmout
+        if tmout == 0:
+                os.remove(lockfile)
+                s = socket.socket()
+                s.connect(("127.0.0.1",4303))
+                s.send("go\n")
+                dummy =  s.recv(256)
+                s.send("set 0 gm 0 0 moveservo() DEADLOCK timeout OF lockfile\n")
+                dummy =  s.recv(256)
+                s.close ()
+                #break
+
+
+   f = open(lockfile, 'w')
+   #print "created lockfile"
+
+
+   #print 'addr is ', address
+   #print 'positon  is ', position
+   #print 'speed is ', speed
+
+   regaddr=0x10
+   # ===========================================================================
+   swstatefile = "/usr/local/etc/.sw" + address + ".state"
+   fbstatefile = "/usr/local/etc/.fb" + address + ".state"
+   statefile = "/usr/local/etc/.servo" + address + ".state"
+   f = open(statefile, 'r')
+   state = f.read()
+   # ===========================================================================
+   
+   # Initialise the PWM device using the default address
+   pwm = PWM(0x40, debug=False)
+   i2c=Adafruit_I2C (0x40, 1)
+   motor = int(address) 
+   motor -=1
+   regaddr = int(address)*4  + 4
+
+
+   #pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+   
+   #register = i2c.readU16Rev(regaddr)
+   
+   #pwm.setPWM(motor , 0, register)
+   #time.sleep (2)
+   
+   register = i2c.readU16Rev(regaddr)
+   #print "currentpos =  %d" %register
+   #print "requested pos. =  %d" %int(position)
+   #print "step pos. =  %d" %step
+   if int(position) + register < step:
+      os.remove(lockfile)
+      exit (0)
+   limit = register
+#--------------------
+   while  (limit < int(position)) :
+         if limit + step > 4095:
+            break
+         limit =  limit + step
+         #print "+limit = %s" %limit
+         pwm.setPWM( motor, 0, limit )
+         register = i2c.readU16Rev(regaddr)
+         if speed > 0:
+            time.sleep(int (speed)/5000.0)
+  # print "++limit = %i" %limit
+   
+#--------------------
+   while  (limit > int(position) ) :
+         limit = limit - step
+         if limit < 0:
+            limit = 0
+         #print "-limit = %i" %limit
+         pwm.setPWM( motor, 0, limit )
+         #register = i2c.readU16Rev(regaddr)
+         if speed > 0:
+            time.sleep(int(speed)/5000.0)
+         #limit -= 1
+   #print "--limit = %i" %limit
+
+
+   register = i2c.readU16Rev(regaddr)
+   f = open(statefile,'w')
+   f.write (str(register))
+   f.write ("\n")
+   f.close()
+         
+   f = open(swstatefile,'w')
+   f.write (str(action))
+   f.write ("\n")
+   f.close()
+
+   os.remove(lockfile)
+#      do the feedback
+
+   s = socket.socket()
+   s.connect(("127.0.0.1",4303))
+   s.send("go\n")
+   dummy =  s.recv(256)
+   if action == "0":
+      print "setting FB to %s" %action
+      cmd = "set 2 fb " +  address + " 0\n"
+      #cmd = "set 2 fb " +  action + " 0\n"
+      s.send(cmd)
+      dummy =  s.recv(256)
+      cmd = "/usr/local/bin/dorelay -r " + address + " -s 0"
+      os.system(cmd)
+# write the fb state to a file
+      f = open(fbstatefile,'w')
+      f.write (str(action))
+      f.write ("\n")
+      f.close()
+
+   if action == "1":
+      print "setting FB to %s" %action
+      cmd = "set 2 fb " + address + " 1\n"
+#      cmd = "set 2 fb " + action + " 1\n"
+      s.send(cmd)
+      dummy = s.recv(256)
+      cmd = "/usr/local/bin/dorelay -r " + address + " -s 1"
+      os.system(cmd)
+# write the fb state to a file
+      f = open(fbstatefile,'w')
+      f.write (str(action))
+      f.write ("\n")
+      f.close()
+   s.close()
+
+
+if __name__ == "__main__":
+   main(sys.argv[1:])

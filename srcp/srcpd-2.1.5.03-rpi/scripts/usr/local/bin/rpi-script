@@ -1,0 +1,77 @@
+#!/bin/sh
+# only responds whem addr = 40
+PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
+CONF="/usr/local/etc/servo.conf"
+
+#/usr/local/bin/exx2 &
+while getopts ":a:b:p:t:h" opt; do
+   case $opt in
+
+   a )  ADDR=$OPTARG ;;
+   b )  BUSS=$OPTARG ;;
+   p )  PORT=$OPTARG ;;
+   t )  ACTION=$OPTARG ;;
+   h )  echo "found $opt" > /dev/null ;;
+   \?)  usage ;;
+   esac
+done
+
+##echo "BUSS = $BUSS Port = $PORT Addr = $ADDR" > /tmp/fifo
+if [ $ADDR -ne 40 ]
+then
+echo "BUSS = $BUSS Port = $PORT Addr = $ADDR Action = $ACTION" >> /tmp/rpi.log4
+exit 0
+fi
+
+SEH=` /bin/grep Servo$PORT.End-high $CONF | cut -d ' ' -f2`
+SEL=` /bin/grep Servo$PORT.End-low $CONF | cut -d ' ' -f2`
+SEH=`expr $SEH \* 256`
+SEH=`expr $SEH + $SEL`
+SL=`printf '%d' $SEH`
+#echo "SL = $SL"
+
+#------------
+
+SSH=` /bin/grep Servo$PORT.Start-high $CONF | cut -d ' ' -f2`
+SSL=` /bin/grep Servo$PORT.Start-low $CONF | cut -d ' ' -f2`
+SSH=`expr $SSH \* 256`
+SSH=`expr $SSH + $SSL`
+SH=`printf '%d' $SSH`
+#echo $SH
+
+
+#-----------------
+
+SPEED=` /bin/grep Servo$PORT.Speed $CONF | cut -d ' ' -f2`
+STEP=` /bin/grep Servo$PORT.Step $CONF | cut -d ' ' -f2`
+##echo "speed = $SPEED" > /tmp/fifo
+#echo "action = $ACTION" > /tmp/fifo
+
+# use the one parameter that suits you best.  Rocrail does things 
+# differently depending if an output or a switch is defined and 
+# how each is defined. The core issue is FADA vs. MADA addressing.
+# 
+# this is set for action defining on and off.
+
+#first we make sure the last known servo positions and the 
+# controller registers match.
+#
+/usr/local/bin/checkservo -a $PORT
+#
+#if [ $PORT -eq 1 ]
+if [ $ACTION -eq 0 ]
+then
+/usr/local/bin/moveservo -a $PORT -s $SPEED -p $SH -t $ACTION -S $STEP&
+#echo "addr = $PORT s=$SPEED p=$SH t=$PORT" > /tmp/fifo
+fi
+
+#if [ $PORT -eq 0 ]
+if [ $ACTION -eq 1 ]
+then
+/usr/local/bin/moveservo -a $PORT -s $SPEED -p $SL -t $ACTION -S $STEP&
+fi
+
+if [ $ACTION -ge 2 ]
+then
+/usr/local/bin/moveservo -a $PORT -s $SPEED -p $ACTION -t  1 -S $STEP &
+fi

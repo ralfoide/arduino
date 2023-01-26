@@ -1,0 +1,25 @@
+#!/usr/bin/python
+print "This will move the second servo plugged into the controller"
+from Adafruit_PWM_Servo_Driver import PWM
+import time
+motornum=1
+time.sleep(1.5)
+# ===========================================================================
+# Example Code
+# ===========================================================================
+
+# Initialise the PWM device using the default address
+# bmp = PWM(0x40, debug=True)
+pwm = PWM(0x40, debug=False)
+
+servoMin = 180  # Min pulse length out of 4096
+servoMax = 600  # Max pulse length out of 4096
+
+
+pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+print "Moving servo to position %i" %servoMin
+pwm.setPWM(motornum , 0, servoMin)
+time.sleep(1.5)
+print "Moving servo to position %i" %servoMax
+pwm.setPWM(motornum, 0, servoMax)
+

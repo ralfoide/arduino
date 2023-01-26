@@ -1,0 +1,28 @@
+#!/bin/sh
+echo "This will install the I2c bus drivers on the Raspberry Pi."
+echo "Press enter to continue."
+read foo
+
+
+echo "# blacklist spi and i2c by default (many users don't need them)
+
+#blacklist spi-bcm2708
+#blacklist i2c-bcm2708
+" > /etc/modprobe.d/raspi-blacklist.conf
+
+echo "
+i2c-dev
+i2c-bcm2708
+" >>  /etc/modules
+
+apt-get update
+apt-get -y install python-smbus
+apt-get -y install i2c-tools
+apt-get -y install libxml2-dev
+apt-get -y install libi2c-dev
+apt-get -y install ksh
+
+
+echo "Install done.  Reboot and test the I2c bus by running \"./Test-i2c\" program."
+exit 
+

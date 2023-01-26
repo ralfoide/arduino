@@ -1,0 +1,59 @@
+#!/usr/bin/python
+# this program is to manually set the state of a feedback device.  
+# use by setfb <fb num> -p (0 or 1)
+import time
+import sys
+import getopt
+import socket
+#-------------------------------------------
+dummy = ""
+def main(argv):
+   iaddr = 0
+   port = 0
+   try:
+      opts, args = getopt.getopt(argv,"h:a:p:",["address="])
+      #print '!checkservo.py -a <fbnum> -p <0-1>'
+   except getopt.GetoptError:
+      print ' err - setfb -a <address> -p <0-1>'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print 'setfb  -a <address> -p <0-1>'
+         sys.exit()
+      elif opt in ("-a", "--address"):
+         address = arg
+         saddr = address
+      elif opt in ("-p", "--port"):
+         port = arg
+   iaddr = iaddr - 1
+   #print iaddr
+   cmd = ""
+   s = socket.socket()
+   s.connect(("127.0.0.1",4303))
+   dummy = s.recv(256)
+   #print dummy
+   s.send("go\n")
+   dummy = s.recv(256)
+   #print dummy
+   if port == "0":
+      #print "setting fb to 0"
+      cmd = "set 2 fb " +  address + " 0\n"
+      #print  cmd
+      #s.send("set 1 fb 7 0\n")
+      s.send(cmd)
+      dummy = s.recv(256)
+      #print dummy
+   #print s.recv(256)
+   if port == "1":
+      #print "setting fb to 1"
+      cmd = "set 2 fb " + address + " 1\n"
+      #print  cmd
+      #s.send("set 2 fb 7 0\n")
+      s.send(cmd)
+      dummy = s.recv(256)
+      #print dummy
+   s.close()
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
+

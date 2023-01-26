@@ -1,0 +1,9 @@
+#!/bin/sh
+
+NUM=1
+VALUE=100
+while [ $NUM -le 16 ]
+do
+echo "0" > /usr/local/etc/.fb$NUM.state
+NUM=`expr $NUM + 1 `
+done
