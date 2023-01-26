@@ -1,0 +1,5 @@
+[values]
+mcu="esp32"
+std=true
+espidfver="v4.4"
+devcontainer=false
