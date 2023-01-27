@@ -17,10 +17,12 @@ pio = ["esp-idf-sys/pio"]
 riscv-ulp-hal = []
 
 [dependencies]
+anyhow = "1.0.68"
+embedded-graphics = "0.7.1"
 embedded-hal = "0.2.7"
 esp-idf-hal = "0.40.1"
 esp-idf-sys = { version = "0.32", features = ["binstart"] }
-
+ssd1306 = "0.7.1"
 
 [build-dependencies]
 embuild = "0.30.4"
