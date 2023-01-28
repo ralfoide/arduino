@@ -48,31 +48,51 @@ fn main() {
     println!("@@ Main running on core {}", i32::from(core()));
     println!("@@ Rust main thread: {:?}", thread::current());
 
-    let peripherals = Peripherals::take().unwrap();
+    let data = init_data();
 
-    let pin_rst = peripherals.pins.gpio16;
-    let pin_sda = peripherals.pins.gpio4;
-    let pin_scl = peripherals.pins.gpio15;
-    let i2c = peripherals.i2c0;
-
-    init_oled(i2c, pin_rst, pin_sda, pin_scl).unwrap();
+    init_oled(data.oled_i2c, data.oled_rst, data.oled_sda, data.oled_scl).unwrap();
 
 
     thread::Builder::new()
         .name(String::from("led25"))
-        .spawn( || thread_led(peripherals.pins.gpio25))
+        .spawn( || thread_led(data.led_pin1))
         .unwrap();
 
     FreeRtos::delay_ms(500);
 
     thread::Builder::new()
         .name(String::from("led21"))
-        .spawn( || thread_led(peripherals.pins.gpio21))
+        .spawn( || thread_led(data.led_pin2))
         .unwrap();
 
     loop {
         println!("@@ main");
         FreeRtos::delay_ms(2000);
+    }
+}
+
+struct Data {
+    //peripherals: Peripherals,
+    oled_i2c: I2C0,
+    oled_rst: AnyIOPin,
+    oled_sda: AnyIOPin,
+    oled_scl: AnyIOPin,
+
+    led_pin1: AnyOutputPin,
+    led_pin2: AnyOutputPin,
+}
+
+fn init_data() -> Data {
+    let per = Peripherals::take().unwrap();
+    Data {
+        //peripherals: per,
+        oled_i2c: per.i2c0,
+        oled_rst: per.pins.gpio16.into(),
+        oled_sda: per.pins.gpio4.into(),
+        oled_scl: per.pins.gpio15.into(),
+
+        led_pin1: per.pins.gpio25.into(),
+        led_pin2: per.pins.gpio21.into(),
     }
 }
 
@@ -117,7 +137,7 @@ fn init_oled(
     Ok( () )
 }
 
-fn thread_led<T: OutputPin>(led_pin: impl Peripheral<P = T>) {
+fn thread_led(led_pin: AnyOutputPin) {
     let mut led = PinDriver::output(led_pin).unwrap();
     let num = led.pin();
 
