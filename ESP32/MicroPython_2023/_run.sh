@@ -1,0 +1,1 @@
+ampy run main.py
