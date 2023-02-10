@@ -1,3 +1,10 @@
-# ampy put main.py
+#!/bin/bash
+
+F="main.py"
+if [[ -f "$1" ]]; then F=$(basename "$1"); fi
+
 export RSHELL_PORT=/dev/ttyS4
-rshell cp main.py /main.py
+#rshell cp "$F" "/pyboard/$F"
+ampy put "$F"
+ampy ls
+rshell repl
