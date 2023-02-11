@@ -1,16 +1,49 @@
+# https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X/blob/main/adafruit_vl53l0x.py
 # SPDX-FileCopyrightText: 2017 Tony DiCola for Adafruit Industries
+#
 # SPDX-License-Identifier: MIT
-# RM adapted for MicroPython ESP32
 
-# `adafruit_vl53l0x`
-# CircuitPython driver for the VL53L0X distance sensor.  This code is adapted
-# from the pololu driver here:
-# https://github.com/pololu/vl53l0x-arduino
+"""
+`adafruit_vl53l0x`
+====================================================
+
+CircuitPython driver for the VL53L0X distance sensor.  This code is adapted
+from the pololu driver here:
+https://github.com/pololu/vl53l0x-arduino
+
+See usage in the examples/vl53l0x_simpletest.py file.
+
+* Author(s): Tony DiCola
+
+Implementation Notes
+--------------------
+
+**Hardware:**
+
+* Adafruit `VL53L0X Time of Flight Distance Sensor - ~30 to 1000mm
+  <https://www.adafruit.com/product/3317>`_ (Product ID: 3317)
+
+**Software and Dependencies:**
+
+* Adafruit CircuitPython firmware for the ESP8622 and M0-based boards:
+  https://github.com/adafruit/circuitpython/releases
+* Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+"""
 import math
 import time
 
-from machine import Pin, SoftI2C
+from adafruit_bus_device import i2c_device
 from micropython import const
+
+try:
+    from typing import Optional, Tuple, Type
+    from types import TracebackType
+    from busio import I2C
+except ImportError:
+    pass
+
+__version__ = "0.0.0+auto.0"
+__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_VL53L0X.git"
 
 # Configuration constants:
 _SYSRANGE_START = const(0x00)
@@ -74,17 +107,13 @@ _ALGO_PHASECAL_CONFIG_TIMEOUT = const(0x30)
 _VCSEL_PERIOD_PRE_RANGE = const(0)
 _VCSEL_PERIOD_FINAL_RANGE = const(1)
 
-def _time_monotonic():
-    return time.ticks_ms()/1000
 
-# def _decode_timeout(val: int) -> float:
-def _decode_timeout(val):
+def _decode_timeout(val: int) -> float:
     # format: "(LSByte * 2^MSByte) + 1"
     return float(val & 0xFF) * math.pow(2.0, ((val & 0xFF00) >> 8)) + 1
 
 
-# def _encode_timeout(timeout_mclks: float) -> int:
-def _encode_timeout(timeout_mclks):
+def _encode_timeout(timeout_mclks: float) -> int:
     # format: "(LSByte * 2^MSByte) + 1"
     timeout_mclks = int(timeout_mclks) & 0xFFFF
     ls_byte = 0
@@ -98,14 +127,16 @@ def _encode_timeout(timeout_mclks):
     return 0
 
 
-# def _timeout_mclks_to_microseconds(timeout_period_mclks: int, vcsel_period_pclks: int) -> int:
-def _timeout_mclks_to_microseconds(timeout_period_mclks, vcsel_period_pclks):
+def _timeout_mclks_to_microseconds(
+    timeout_period_mclks: int, vcsel_period_pclks: int
+) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns // 2)) // 1000
 
 
-# def _timeout_microseconds_to_mclks(timeout_period_us: int, vcsel_period_pclks: int) -> int:
-def _timeout_microseconds_to_mclks(timeout_period_us, vcsel_period_pclks):
+def _timeout_microseconds_to_mclks(
+    timeout_period_us: int, vcsel_period_pclks: int
+) -> int:
     macro_period_ns = ((2304 * (vcsel_period_pclks) * 1655) + 500) // 1000
     return ((timeout_period_us * 1000) + (macro_period_ns // 2)) // macro_period_ns
 
@@ -116,26 +147,27 @@ class VL53L0X:
     # Class-level buffer for reading and writing data with the sensor.
     # This reduces memory allocations but means the code is not re-entrant or
     # thread safe!
-    _BYTES1 = bytearray(1)
-    _BYTES2 = bytearray(2)
+    _BUFFER = bytearray(3)
 
     # Is VL53L0X is currently continuous mode? (Needed by `range` property)
-    #_continuous_mode = False
+    _continuous_mode = False
 
-    # def __init__(self, i2c: I2C, address: int = 41, io_timeout_s: float = 0) -> None:
-    def __init__(self, i2c, address = 41, io_timeout_s = 0.0):
+    def __init__(self, i2c: I2C, address: int = 41, io_timeout_s: float = 0) -> None:
         # pylint: disable=too-many-statements
         self._i2c = i2c
-        self._i2c_address = address
-        #-- self._device = i2c_device.I2CDevice(i2c, address)
+        self._device = i2c_device.I2CDevice(i2c, address)
         self.io_timeout_s = io_timeout_s
         self._data_ready = False
         # Check identification registers for expected values.
         # From section 3.2 of the datasheet.
-        if (self._read_u8(0xC0) != 0xEE
+        if (
+            self._read_u8(0xC0) != 0xEE
             or self._read_u8(0xC1) != 0xAA
-            or self._read_u8(0xC2) != 0x10):
-            raise RuntimeError("Failed to find expected ID register values. Check wiring!")
+            or self._read_u8(0xC2) != 0x10
+        ):
+            raise RuntimeError(
+                "Failed to find expected ID register values. Check wiring!"
+            )
         # Initialize access to the sensor.  This is based on the logic from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         # Set I2C standard mode.
@@ -150,7 +182,7 @@ class VL53L0X:
         self._write_u8(_MSRC_CONFIG_CONTROL, config_control)
         # set final range signal rate limit to 0.25 MCPS (million counts per
         # second)
-        self.set_signal_rate_limit(0.25)
+        self.signal_rate_limit = 0.25
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xFF)
         spad_count, spad_is_aperture = self._get_spad_info()
         # The SPAD map (RefGoodSpadMap) is read by
@@ -159,9 +191,9 @@ class VL53L0X:
         # _6, so read it from there.
         ref_spad_map = bytearray(7)
         ref_spad_map[0] = _GLOBAL_CONFIG_SPAD_ENABLES_REF_0
-        #with self._device:
-        self._device_write(ref_spad_map, end=1)
-        self._device_readinto(ref_spad_map, start=1)
+        with self._device:
+            self._device.write(ref_spad_map, end=1)
+            self._device.readinto(ref_spad_map, start=1)
 
         for pair in (
             (0xFF, 0x01),
@@ -182,8 +214,8 @@ class VL53L0X:
                 ref_spad_map[1 + (i // 8)] &= ~(1 << (i % 8))
             elif (ref_spad_map[1 + (i // 8)] >> (i % 8)) & 0x1 > 0:
                 spads_enabled += 1
-        #with self._device:
-        self._device_write(ref_spad_map)
+        with self._device:
+            self._device.write(ref_spad_map)
         for pair in (
             (0xFF, 0x01),
             (0x00, 0x00),
@@ -274,9 +306,9 @@ class VL53L0X:
             _GPIO_HV_MUX_ACTIVE_HIGH, gpio_hv_mux_active_high & ~0x10
         )  # active low
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
-        self._measurement_timing_budget_us = self.measurement_timing_budget()
+        self._measurement_timing_budget_us = self.measurement_timing_budget
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
-        self.set_measurement_timing_budget(self._measurement_timing_budget_us)
+        self.measurement_timing_budget = self._measurement_timing_budget_us
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0x01)
         self._perform_single_ref_calibration(0x40)
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0x02)
@@ -284,78 +316,38 @@ class VL53L0X:
         # "restore the previous Sequence Config"
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
 
-    def _device_readinto(self, buf, start=0):
-        print("@@ _device_readinfo buf %s / start %s", repr(buf), repr(start))
-        tmp = bytearray(len(buf) - start)
-        self._i2c.readfrom_into(self._i2c_address, tmp)
-        buf[start:] = tmp[:]
-
-    def _device_write(self, buf, end=None):
-        print("@@ _device_write buf %s / end %s", repr(buf), repr(end))
-        if end is None or end == len(buf):
-            self._i2c.writeto(self._i2c_address, buf)
-        elif end == 1:
-            self._BYTES1 [0] = buf[0]
-            self._i2c.writeto(self._i2c_address, self._BYTES1)
-        else:
-            raise ValueError("@@ _device_write unsupported len %s" % repr(end))
-            tmp = bytearray(end)
-            tmp[:] = buf[0:end]
-            self._i2c.writeto(self._i2c_address, tmp)
-
-    # def _read_u8(self, address: int) -> int:
-    def _read_u8(self, address):
+    def _read_u8(self, address: int) -> int:
         # Read an 8-bit unsigned value from the specified 8-bit address.
-        # self._BUFFER[0] = address & 0xFF
-        # self._device_write(self._BUFFER, end=1)
-        # self._device_readinto(self._BUFFER, end=1)
-        # return self._BUFFER[0]
-        # ---
-        # self._BYTES1 [0] = address & 0xFF
-        # self._i2c.writeto(self._i2c_address, self._BYTES1 )
-        # self._i2c.readfrom_into(self._i2c_address, self._BYTES1 )
-        self._i2c.readfrom_mem_into(self._i2c_address, address, self._BYTES1 )
-        return self._BYTES1 [0]
+        with self._device:
+            self._BUFFER[0] = address & 0xFF
+            self._device.write(self._BUFFER, end=1)
+            self._device.readinto(self._BUFFER, end=1)
+        return self._BUFFER[0]
 
-    #def _read_u16(self, address: int) -> int:
-    def _read_u16(self, address):
+    def _read_u16(self, address: int) -> int:
         # Read a 16-bit BE unsigned value from the specified 8-bit address.
-        # #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._device_write(self._BUFFER, end=1)
-        # self._device_readinto(self._BUFFER)
-        # return (self._BUFFER[0] << 8) | self._BUFFER[1]
-        #---
-        # self._BYTES1 [0] = address & 0xFF
-        # self._i2c.writeto(self._i2c_address, self._BYTES1 )
-        # self._i2c.readfrom_into(self._i2c_address, self._BYTES2)
-        self._i2c.readfrom_mem_into(self._i2c_address, address, self._BYTES2)
-        return (self._BYTES2[0] << 8) | self._BYTES2[1]
+        with self._device:
+            self._BUFFER[0] = address & 0xFF
+            self._device.write(self._BUFFER, end=1)
+            self._device.readinto(self._BUFFER)
+        return (self._BUFFER[0] << 8) | self._BUFFER[1]
 
-    #def _write_u8(self, address: int, val: int) -> None:
-    def _write_u8(self, address, val):
+    def _write_u8(self, address: int, val: int) -> None:
         # Write an 8-bit unsigned value to the specified 8-bit address.
-        # #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._BUFFER[1] = val & 0xFF
-        # self._device_write(self._BUFFER, end=2)
-        self._BYTES1 [0] = val & 0xFF
-        self._i2c.writeto_mem(self._i2c_address, address, self._BYTES1 )
+        with self._device:
+            self._BUFFER[0] = address & 0xFF
+            self._BUFFER[1] = val & 0xFF
+            self._device.write(self._BUFFER, end=2)
 
-    #def _write_u16(self, address: int, val: int) -> None:
-    def _write_u16(self, address, val):
+    def _write_u16(self, address: int, val: int) -> None:
         # Write a 16-bit BE unsigned value to the specified 8-bit address.
-        #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._BUFFER[1] = (val >> 8) & 0xFF
-        # self._BUFFER[2] = val & 0xFF
-        # self._device_write(self._BUFFER)
-        self._BYTES2[0] = (val >> 8) & 0xFF
-        self._BYTES2[1] = val & 0xFF
-        self._i2c.writeto_mem(self._i2c_address, address, self._BYTES2)
+        with self._device:
+            self._BUFFER[0] = address & 0xFF
+            self._BUFFER[1] = (val >> 8) & 0xFF
+            self._BUFFER[2] = val & 0xFF
+            self._device.write(self._BUFFER)
 
-    #def _get_spad_info(self) -> Tuple[int, bool]:
-    def _get_spad_info(self):
+    def _get_spad_info(self) -> Tuple[int, bool]:
         # Get reference SPAD count and type, returned as a 2-tuple of
         # count and boolean is_aperture.  Based on code from:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
@@ -370,10 +362,12 @@ class VL53L0X:
             (0x83, 0x00),
         ):
             self._write_u8(pair[0], pair[1])
-        start = _time_monotonic()
+        start = time.monotonic()
         while self._read_u8(0x83) == 0x00:
-            if (self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s):
+            if (
+                self.io_timeout_s > 0
+                and (time.monotonic() - start) >= self.io_timeout_s
+            ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._write_u8(0x83, 0x01)
         tmp = self._read_u8(0x92)
@@ -386,20 +380,20 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         return (count, is_aperture)
 
-    #def _perform_single_ref_calibration(self, vhv_init_byte: int) -> None:
-    def _perform_single_ref_calibration(self, vhv_init_byte):
+    def _perform_single_ref_calibration(self, vhv_init_byte: int) -> None:
         # based on VL53L0X_perform_single_ref_calibration() from ST API.
         self._write_u8(_SYSRANGE_START, 0x01 | vhv_init_byte & 0xFF)
-        start = _time_monotonic()
+        start = time.monotonic()
         while (self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07) == 0:
-            if (self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s):
+            if (
+                self.io_timeout_s > 0
+                and (time.monotonic() - start) >= self.io_timeout_s
+            ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         self._write_u8(_SYSTEM_INTERRUPT_CLEAR, 0x01)
         self._write_u8(_SYSRANGE_START, 0x00)
 
-    #def _get_vcsel_pulse_period(self, vcsel_period_type: int) -> int:
-    def _get_vcsel_pulse_period(self, vcsel_period_type):
+    def _get_vcsel_pulse_period(self, vcsel_period_type: int) -> int:
         # pylint: disable=no-else-return
         # Disable should be removed when refactor can be tested
         if vcsel_period_type == _VCSEL_PERIOD_PRE_RANGE:
@@ -410,8 +404,7 @@ class VL53L0X:
             return (((val) + 1) & 0xFF) << 1
         return 255
 
-    #def _get_sequence_step_enables(self) -> Tuple[bool, bool, bool, bool, bool]:
-    def _get_sequence_step_enables(self):
+    def _get_sequence_step_enables(self) -> Tuple[bool, bool, bool, bool, bool]:
         # based on VL53L0X_GetSequenceStepEnables() from ST API
         sequence_config = self._read_u8(_SYSTEM_SEQUENCE_CONFIG)
         tcc = (sequence_config >> 4) & 0x1 > 0
@@ -421,8 +414,9 @@ class VL53L0X:
         final_range = (sequence_config >> 7) & 0x1 > 0
         return (tcc, dss, msrc, pre_range, final_range)
 
-    #def _get_sequence_step_timeouts(self, pre_range: int) -> Tuple[int, int, int, int, float]:
-    def _get_sequence_step_timeouts(self, pre_range):
+    def _get_sequence_step_timeouts(
+        self, pre_range: int
+    ) -> Tuple[int, int, int, int, float]:
         # based on get_sequence_step_timeout() from ST API but modified by
         # pololu here:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
@@ -458,23 +452,23 @@ class VL53L0X:
             pre_range_mclks,
         )
 
-    #def signal_rate_limit(self) -> float:
-    def signal_rate_limit(self):
-        # """The signal rate limit in mega counts per second."""
+    @property
+    def signal_rate_limit(self) -> float:
+        """The signal rate limit in mega counts per second."""
         val = self._read_u16(_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT)
         # Return value converted from 16-bit 9.7 fixed point to float.
         return val / (1 << 7)
 
-    #def signal_rate_limit(self, val: float) -> None:
-    def set_signal_rate_limit(self, val):
+    @signal_rate_limit.setter
+    def signal_rate_limit(self, val: float) -> None:
         assert 0.0 <= val <= 511.99
         # Convert to 16-bit 9.7 fixed point value from a float.
         val = int(val * (1 << 7))
         self._write_u16(_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, val)
 
-    #def measurement_timing_budget(self) -> int:
-    def measurement_timing_budget(self):
-        # """The measurement timing budget in microseconds."""
+    @property
+    def measurement_timing_budget(self) -> int:
+        """The measurement timing budget in microseconds."""
         budget_us = 1910 + 960  # Start overhead + end overhead.
         tcc, dss, msrc, pre_range, final_range = self._get_sequence_step_enables()
         step_timeouts = self._get_sequence_step_timeouts(pre_range)
@@ -492,8 +486,8 @@ class VL53L0X:
         self._measurement_timing_budget_us = budget_us
         return budget_us
 
-    #def measurement_timing_budget(self, budget_us: int) -> None:
-    def set_measurement_timing_budget(self, budget_us):
+    @measurement_timing_budget.setter
+    def measurement_timing_budget(self, budget_us: int) -> None:
         # pylint: disable=too-many-locals
         assert budget_us >= 20000
         used_budget_us = 1320 + 960  # Start (diff from get) + end overhead
@@ -530,39 +524,38 @@ class VL53L0X:
             )
             self._measurement_timing_budget_us = budget_us
 
-    #def distance(self) -> float:
-    def distance(self):
-        # """Perform a single reading of the range for an object in front of
-        # the sensor and return the distance in centimeters.
-        # """
-        return self.range() / 10
+    @property
+    def distance(self) -> float:
+        """Perform a single reading of the range for an object in front of
+        the sensor and return the distance in centimeters.
+        """
+        return self.range / 10
 
-    #def range(self) -> int:
-    def range(self):
-        # """Perform a single (or continuous if `start_continuous` called)
-        # reading of the range for an object in front of the sensor and
-        # return the distance in millimeters.
-        # """
+    @property
+    def range(self) -> int:
+        """Perform a single (or continuous if `start_continuous` called)
+        reading of the range for an object in front of the sensor and
+        return the distance in millimeters.
+        """
         # Adapted from readRangeSingleMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        #if not self._continuous_mode:
-        self.do_range_measurement()
+        if not self._continuous_mode:
+            self.do_range_measurement()
         return self.read_range()
 
-    #def data_ready(self) -> bool:
-    def data_ready(self):
-        # """Check if data is available from the sensor. If true a call to .range()
-        # will return quickly. If false, calls to .range() will wait for the sensor's
-        # next reading to be available."""
+    @property
+    def data_ready(self) -> bool:
+        """Check if data is available from the sensor. If true a call to .range
+        will return quickly. If false, calls to .range will wait for the sensor's
+        next reading to be available."""
         if not self._data_ready:
             self._data_ready = self._read_u8(_RESULT_INTERRUPT_STATUS) & 0x07 != 0
         return self._data_ready
 
-    #def do_range_measurement(self) -> None:
-    def do_range_measurement(self):
-        # """Perform a single reading of the range for an object in front of the
-        # sensor, but without return the distance.
-        # """
+    def do_range_measurement(self) -> None:
+        """Perform a single reading of the range for an object in front of the
+        sensor, but without return the distance.
+        """
         # Adapted from readRangeSingleMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         for pair in (
@@ -576,28 +569,27 @@ class VL53L0X:
             (_SYSRANGE_START, 0x01),
         ):
             self._write_u8(pair[0], pair[1])
-        start = _time_monotonic()
+        start = time.monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
             if (
                 self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s
+                and (time.monotonic() - start) >= self.io_timeout_s
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
-    #def read_range(self) -> int:
-    def read_range(self):
-        # """Return a range reading in millimeters.
-        # Note: Avoid calling this directly. If you do single mode, you need
-        # to call `do_range_measurement` first. Or your program will stuck or
-        # timeout occurred.
-        # """
+    def read_range(self) -> int:
+        """Return a range reading in millimeters.
+        Note: Avoid calling this directly. If you do single mode, you need
+        to call `do_range_measurement` first. Or your program will stuck or
+        timeout occurred.
+        """
         # Adapted from readRangeContinuousMillimeters in pololu code at:
         #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        start = _time_monotonic()
-        while not self.data_ready():
+        start = time.monotonic()
+        while not self.data_ready:
             if (
                 self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s
+                and (time.monotonic() - start) >= self.io_timeout_s
             ):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         # assumptions: Linearity Corrective Gain is 1000 (default)
@@ -607,4 +599,86 @@ class VL53L0X:
         self._data_ready = False
         return range_mm
 
-##
+    @property
+    def is_continuous_mode(self) -> bool:
+        """Is the sensor currently in continuous mode?"""
+        return self._continuous_mode
+
+    def continuous_mode(self) -> "VL53L0X":
+        """Activate the continuous mode manager"""
+        return self
+
+    def __enter__(self) -> "VL53L0X":
+        """For continuous mode manager, called when used on `with` keyword"""
+        self.start_continuous()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        """For continuous mode manager, called at the end of `with` scope"""
+        self.stop_continuous()
+
+    def start_continuous(self) -> None:
+        """Perform a continuous reading of the range for an object in front of
+        the sensor.
+        """
+        # Adapted from startContinuous in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
+        for pair in (
+            (0x80, 0x01),
+            (0xFF, 0x01),
+            (0x00, 0x00),
+            (0x91, self._stop_variable),
+            (0x00, 0x01),
+            (0xFF, 0x00),
+            (0x80, 0x00),
+            (_SYSRANGE_START, 0x02),
+        ):
+            self._write_u8(pair[0], pair[1])
+        start = time.monotonic()
+        while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
+            if (
+                self.io_timeout_s > 0
+                and (time.monotonic() - start) >= self.io_timeout_s
+            ):
+                raise RuntimeError("Timeout waiting for VL53L0X!")
+        self._continuous_mode = True
+
+    def stop_continuous(self) -> None:
+        """Stop continuous readings."""
+        # Adapted from stopContinuous in pololu code at:
+        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
+        for pair in (
+            (_SYSRANGE_START, 0x01),
+            (0xFF, 0x01),
+            (0x00, 0x00),
+            (0x91, 0x00),
+            (0x00, 0x01),
+            (0xFF, 0x00),
+        ):
+            self._write_u8(pair[0], pair[1])
+        self._continuous_mode = False
+
+        # restore the sensor to single ranging mode
+        self.do_range_measurement()
+
+    def set_address(self, new_address: int) -> None:
+        """Set a new I2C address to the instantaited object. This is only called when using
+        multiple VL53L0X sensors on the same I2C bus (SDA & SCL pins). See also the
+        `example <examples.html#multiple-vl53l0x-on-same-i2c-bus>`_ for proper usage.
+
+        :param int new_address: The 7-bit `int` that is to be assigned to the VL53L0X sensor.
+            The address that is assigned should NOT be already in use by another device on the
+            I2C bus.
+
+        .. important:: To properly set the address to an individual VL53L0X sensor, you must
+            first ensure that all other VL53L0X sensors (using the default address of ``0x29``)
+            on the same I2C bus are in their off state by pulling the "SHDN" pins LOW. When the
+            "SHDN" pin is pulled HIGH again the default I2C address is ``0x29``.
+        """
+        self._write_u8(_I2C_SLAVE_DEVICE_ADDRESS, new_address & 0x7F)
+        self._device = i2c_device.I2CDevice(self._i2c, new_address)

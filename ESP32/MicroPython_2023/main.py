@@ -43,14 +43,15 @@ def update_oled(msg = None):
     oled.text("ESP32", 45, 5 + oled_y_offset)
     oled.text(oled_msg, 20, 20 + oled_y_offset) 
     oled.show()
-    oled_y_offset = (oled_y_offset + 1) % (64 - 8)
+    oled_y_offset = (oled_y_offset + 1) % (64 - 32)
 
+oled_distance = 0.0
 def thread_oled():
     n = 0
     while True:
-        update_oled()
+        update_oled("%.2f mm" % oled_distance)
         n += 1
-        time.sleep_ms(1000)
+        time.sleep_ms(250)
         # print("loop",n)
 
 def init_tof():
@@ -60,8 +61,13 @@ def init_tof():
     i2c = SoftI2C(scl=scl, sda=sda, freq=450000)
     tof = vl53l0x.VL53L0X(i2c)
 
-def update_tof():
-    pass
+def thread_tof():
+    global oled_distance
+    global tof
+    init_tof()
+    while True:
+        oled_distance = tof.distance()
+        time.sleep_ms(250)
 
 def main_loop():
     t_led1 = _thread.start_new_thread(thread_led, (led_pin1, ))
@@ -69,6 +75,7 @@ def main_loop():
     t_led2 = _thread.start_new_thread(thread_led, (led_pin2, ))
     time.sleep_ms(250)
     _thread.start_new_thread(thread_oled, ())
+    _thread.start_new_thread(thread_tof, ())
     print("End main loop")
 
 if __name__ == "__main__":
