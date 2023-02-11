@@ -25,49 +25,59 @@ def thread_led(pin):
         blink(pin)
         time.sleep_ms(1000)
 
+OLED_SX = const(128)
+OLED_SY = const(64)
 def init_oled():
-    global oled
     rst = Pin(16, Pin.OUT)
     rst.value(1)
     sda = Pin(4, Pin.OUT, Pin.PULL_UP)
     scl = Pin(15, Pin.OUT, Pin.PULL_UP)
     i2c = SoftI2C(scl=scl, sda=sda, freq=450000)
-    oled = ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3c)
+    oled = ssd1306.SSD1306_I2C(OLED_SX, OLED_SY, i2c, addr=0x3c)
+    return oled
 
 oled_y_offset = 0
 oled_msg = "MicroPython"
-def update_oled(msg = None):
+YTXT = 15
+DY = OLED_SY - 35
+def update_oled(oled, ratio, msg = None):
     global oled_y_offset, oled_msg
     if msg: oled_msg = msg
+    y = 0 + abs(oled_y_offset - DY//2)
     oled.fill(0)
-    oled.text("ESP32", 45, 5 + oled_y_offset)
-    oled.text(oled_msg, 20, 20 + oled_y_offset) 
+    oled.text("ESP32", 45, y)
+    y += YTXT
+    oled.text(oled_msg, 20, y)
+    y += YTXT
+    sx = OLED_SX-1
+    oled.rect(0, y, sx, YTXT, 1)
+    oled.fill_rect(0, y, int(sx * ratio), YTXT, 1)
     oled.show()
-    oled_y_offset = (oled_y_offset + 1) % (64 - 32)
+    oled_y_offset = (oled_y_offset + 1) % DY
 
 oled_distance = 0.0
 def thread_oled():
+    oled = init_oled()
     n = 0
     while True:
-        update_oled("%.2f mm" % oled_distance)
+        update_oled(oled, oled_distance / 1000, "%.2f mm" % oled_distance)
         n += 1
-        time.sleep_ms(250)
+        time.sleep_ms(50)
         # print("loop",n)
 
 def init_tof():
-    global tof   
     sda = Pin(21, Pin.OUT, Pin.PULL_UP)
     scl = Pin(22, Pin.OUT, Pin.PULL_UP)
     i2c = SoftI2C(scl=scl, sda=sda, freq=450000)
     tof = vl53l0x.VL53L0X(i2c)
+    return tof
 
 def thread_tof():
     global oled_distance
-    global tof
-    init_tof()
+    tof = init_tof()
     while True:
         oled_distance = tof.distance()
-        time.sleep_ms(250)
+        time.sleep_ms(50)
 
 def main_loop():
     t_led1 = _thread.start_new_thread(thread_led, (led_pin1, ))
@@ -85,5 +95,4 @@ if __name__ == "__main__":
     m = os.statvfs("//")
     print("VFS :", (m[0]*m[3]) / 1024 / 1024, "MB free out of", (m[0]*m[2]) / 1024 / 1024, "MB")
 
-    init_oled()
     main_loop()

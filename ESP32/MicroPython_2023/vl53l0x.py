@@ -77,6 +77,7 @@ _VCSEL_PERIOD_FINAL_RANGE = const(1)
 def _time_monotonic():
     return time.ticks_ms()/1000
 
+
 # def _decode_timeout(val: int) -> float:
 def _decode_timeout(val):
     # format: "(LSByte * 2^MSByte) + 1"
@@ -118,9 +119,6 @@ class VL53L0X:
     # thread safe!
     _BYTES1 = bytearray(1)
     _BYTES2 = bytearray(2)
-
-    # Is VL53L0X is currently continuous mode? (Needed by `range` property)
-    #_continuous_mode = False
 
     # def __init__(self, i2c: I2C, address: int = 41, io_timeout_s: float = 0) -> None:
     def __init__(self, i2c, address = 41, io_timeout_s = 0.0):
@@ -285,20 +283,17 @@ class VL53L0X:
         self._write_u8(_SYSTEM_SEQUENCE_CONFIG, 0xE8)
 
     def _device_readinto(self, buf, start=0):
-        print("@@ _device_readinfo buf %s / start %s", repr(buf), repr(start))
         tmp = bytearray(len(buf) - start)
         self._i2c.readfrom_into(self._i2c_address, tmp)
         buf[start:] = tmp[:]
 
     def _device_write(self, buf, end=None):
-        print("@@ _device_write buf %s / end %s", repr(buf), repr(end))
         if end is None or end == len(buf):
             self._i2c.writeto(self._i2c_address, buf)
         elif end == 1:
             self._BYTES1 [0] = buf[0]
             self._i2c.writeto(self._i2c_address, self._BYTES1)
         else:
-            raise ValueError("@@ _device_write unsupported len %s" % repr(end))
             tmp = bytearray(end)
             tmp[:] = buf[0:end]
             self._i2c.writeto(self._i2c_address, tmp)
@@ -306,50 +301,24 @@ class VL53L0X:
     # def _read_u8(self, address: int) -> int:
     def _read_u8(self, address):
         # Read an 8-bit unsigned value from the specified 8-bit address.
-        # self._BUFFER[0] = address & 0xFF
-        # self._device_write(self._BUFFER, end=1)
-        # self._device_readinto(self._BUFFER, end=1)
-        # return self._BUFFER[0]
-        # ---
-        # self._BYTES1 [0] = address & 0xFF
-        # self._i2c.writeto(self._i2c_address, self._BYTES1 )
-        # self._i2c.readfrom_into(self._i2c_address, self._BYTES1 )
         self._i2c.readfrom_mem_into(self._i2c_address, address, self._BYTES1 )
         return self._BYTES1 [0]
 
     #def _read_u16(self, address: int) -> int:
     def _read_u16(self, address):
         # Read a 16-bit BE unsigned value from the specified 8-bit address.
-        # #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._device_write(self._BUFFER, end=1)
-        # self._device_readinto(self._BUFFER)
-        # return (self._BUFFER[0] << 8) | self._BUFFER[1]
-        #---
-        # self._BYTES1 [0] = address & 0xFF
-        # self._i2c.writeto(self._i2c_address, self._BYTES1 )
-        # self._i2c.readfrom_into(self._i2c_address, self._BYTES2)
         self._i2c.readfrom_mem_into(self._i2c_address, address, self._BYTES2)
         return (self._BYTES2[0] << 8) | self._BYTES2[1]
 
     #def _write_u8(self, address: int, val: int) -> None:
     def _write_u8(self, address, val):
         # Write an 8-bit unsigned value to the specified 8-bit address.
-        # #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._BUFFER[1] = val & 0xFF
-        # self._device_write(self._BUFFER, end=2)
         self._BYTES1 [0] = val & 0xFF
         self._i2c.writeto_mem(self._i2c_address, address, self._BYTES1 )
 
     #def _write_u16(self, address: int, val: int) -> None:
     def _write_u16(self, address, val):
         # Write a 16-bit BE unsigned value to the specified 8-bit address.
-        #with self._device:
-        # self._BUFFER[0] = address & 0xFF
-        # self._BUFFER[1] = (val >> 8) & 0xFF
-        # self._BUFFER[2] = val & 0xFF
-        # self._device_write(self._BUFFER)
         self._BYTES2[0] = (val >> 8) & 0xFF
         self._BYTES2[1] = val & 0xFF
         self._i2c.writeto_mem(self._i2c_address, address, self._BYTES2)
@@ -543,9 +512,6 @@ class VL53L0X:
         # reading of the range for an object in front of the sensor and
         # return the distance in millimeters.
         # """
-        # Adapted from readRangeSingleMillimeters in pololu code at:
-        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
-        #if not self._continuous_mode:
         self.do_range_measurement()
         return self.read_range()
 
@@ -563,8 +529,6 @@ class VL53L0X:
         # """Perform a single reading of the range for an object in front of the
         # sensor, but without return the distance.
         # """
-        # Adapted from readRangeSingleMillimeters in pololu code at:
-        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         for pair in (
             (0x80, 0x01),
             (0xFF, 0x01),
@@ -578,10 +542,8 @@ class VL53L0X:
             self._write_u8(pair[0], pair[1])
         start = _time_monotonic()
         while (self._read_u8(_SYSRANGE_START) & 0x01) > 0:
-            if (
-                self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s
-            ):
+            if (self.io_timeout_s > 0
+                and (_time_monotonic() - start) >= self.io_timeout_s):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
 
     #def read_range(self) -> int:
@@ -591,14 +553,10 @@ class VL53L0X:
         # to call `do_range_measurement` first. Or your program will stuck or
         # timeout occurred.
         # """
-        # Adapted from readRangeContinuousMillimeters in pololu code at:
-        #   https://github.com/pololu/vl53l0x-arduino/blob/master/VL53L0X.cpp
         start = _time_monotonic()
         while not self.data_ready():
-            if (
-                self.io_timeout_s > 0
-                and (_time_monotonic() - start) >= self.io_timeout_s
-            ):
+            if (self.io_timeout_s > 0
+                and (_time_monotonic() - start) >= self.io_timeout_s):
                 raise RuntimeError("Timeout waiting for VL53L0X!")
         # assumptions: Linearity Corrective Gain is 1000 (default)
         # fractional ranging is not enabled
