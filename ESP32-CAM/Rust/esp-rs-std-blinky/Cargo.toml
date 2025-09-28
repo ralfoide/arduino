@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["ralf <ralfoide@gmail.com>"]
 edition = "2021"
 resolver = "2"
-rust-version = "1.77"
+rust-version = "1.86"
 
 [[bin]]
 name = "esprs2"
@@ -47,3 +47,10 @@ anyhow = "1.0.100"
 
 [build-dependencies]
 embuild = "0.33"
+
+[package.metadata.esp-idf-sys]
+# esp_idf_tools_install_dir = "global"
+# esp_idf_tools_install_dir = "custom:e:\\Temp\\embuild"
+
+
+
