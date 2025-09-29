@@ -3,3 +3,6 @@
 /.embuild
 /target
 /Cargo.lock
+.git
+
+components/esp32-camera

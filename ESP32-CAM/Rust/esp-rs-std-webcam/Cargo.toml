@@ -27,6 +27,7 @@ log = "0.4"
 esp-idf-svc = "0.51"
 esp-idf-hal = "0.45.2"
 anyhow = "1.0.100"
+esp-idf-sys = "0.36.1"
 
 # --- Optional Embassy Integration ---
 # esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
@@ -48,9 +49,9 @@ anyhow = "1.0.100"
 [build-dependencies]
 embuild = "0.33"
 
-[package.metadata.esp-idf-sys]
-# esp_idf_tools_install_dir = "global"
-# esp_idf_tools_install_dir = "custom:e:\\Temp\\embuild"
-
+[[package.metadata.esp-idf-sys.extra_components]]
+component_dirs = "components/esp32-camera"
+bindings_header = "components/bindings.h"
+bindings_module = "camera"
 
 
