@@ -4,7 +4,7 @@ use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys::{camera, heap_caps_get_free_size, MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM};
-use esp_rs_std_webcam::board::Board;
+use esp_rs_std_webcam::board::{Board, Board1};
 use esp_rs_std_webcam::espcam::Camera;
 
 fn main() -> anyhow::Result<()> {
@@ -23,6 +23,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("@@ Free external RAM: {} bytes", free_ram_bytes);
 
     let mut board = Board::init();
+    let mut board2 = Board2::init();
 
     esp_rs_std_webcam::mod_sample_cam::run_camera_loop(&mut board)
 }

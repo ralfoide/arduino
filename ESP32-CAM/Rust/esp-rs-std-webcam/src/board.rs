@@ -1,6 +1,6 @@
 use crate::espcam::Camera;
 use esp_idf_hal::gpio;
-use esp_idf_hal::gpio::{Gpio33, Output, PinDriver};
+use esp_idf_hal::gpio::{Gpio33, Gpio4, Output, PinDriver};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys::{camera, EspError};
 
@@ -19,6 +19,10 @@ impl Board {
 
     pub fn take_led(&mut self) -> Result<PinDriver<Gpio33, Output>, EspError> {
         PinDriver::output(&mut self.pins.gpio33)
+    }
+
+    pub fn take_flash(&mut self) -> Result<PinDriver<Gpio4, Output>, EspError> {
+        PinDriver::output(&mut self.pins.gpio4)
     }
 
     pub fn take_camera(&mut self) -> Result<Camera, EspError> {

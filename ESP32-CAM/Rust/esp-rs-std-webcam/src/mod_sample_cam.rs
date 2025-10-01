@@ -1,10 +1,17 @@
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_sys::camera;
-use crate::board::Board;
+use crate::board::{Board};
+use crate::board2::Board2;
 use crate::espcam::Camera;
 
-pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
+pub fn run_camera_loop(board: &mut Board, board2: &mut Board2) -> anyhow::Result<()> {
+
+    let mut led2 = board2.take_led()?;
+    let mut flash2 = board2.take_flash()?;
+
+
     let mut led = board.take_led()?;
+    let mut flash = board.take_flash()?;
 
     // let camera = board.take_camera()?;
     //
