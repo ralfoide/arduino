@@ -48,3 +48,12 @@ impl Board {
         )
     }
 }
+
+
+fn sample_board() {
+    let mut board = Board::init();
+
+    let led = board.take_led();
+    let flash = board.take_flash(); // Error: cannot borrow `board` as mutable more than once at a time
+}
+
