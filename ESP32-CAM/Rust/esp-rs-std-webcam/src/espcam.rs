@@ -240,6 +240,10 @@ impl<'a> Camera<'a> {
         pin_scl: impl Peripheral<P = impl InputPin + OutputPin> + 'a,
         pixel_format: camera::pixformat_t,
         frame_size: camera::framesize_t,
+        // Quality of JPEG output. 0-63, lower means higher quality.
+        jpeg_quality: i32,
+        // Number of frame buffers to be allocated. If more than one, then each frame will be acquired (double speed).
+        fb_count: usize,
     ) -> Result<Self, esp_idf_sys::EspError> {
         esp_idf_hal::into_ref!(
             pin_pwdn, pin_xclk, pin_d0, pin_d1, pin_d2, pin_d3, pin_d4, pin_d5, pin_d6, pin_d7,
@@ -269,8 +273,8 @@ impl<'a> Camera<'a> {
             pixel_format,
             frame_size,
 
-            jpeg_quality: 10,       // RM 12->10
-            fb_count: 2,            // RM 1-->2
+            jpeg_quality,
+            fb_count,
             grab_mode: camera::camera_grab_mode_t_CAMERA_GRAB_WHEN_EMPTY,
 
             fb_location: camera::camera_fb_location_t_CAMERA_FB_IN_PSRAM,

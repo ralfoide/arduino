@@ -1,12 +1,7 @@
 mod espcam;
 
-use esp_idf_hal::delay::FreeRtos;
-use esp_idf_hal::gpio::*;
-use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_sys::{camera, heap_caps_get_free_size, MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM};
-use esp_rs_std_webcam::board::{Board};
-use esp_rs_std_webcam::board2::Board2;
-use esp_rs_std_webcam::espcam::Camera;
+use esp_idf_sys::{heap_caps_get_free_size, MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM};
+use esp_rs_std_webcam::board::Board;
 
 fn main() -> anyhow::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -24,7 +19,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("@@ Free external RAM: {} bytes", free_ram_bytes);
 
     // let mut board = Board::init();
-    let mut board2 = Board2::init();
+    let mut board = Board::init();
 
-    esp_rs_std_webcam::mod_sample_cam::run_camera_loop(&mut board2)
+    esp_rs_std_webcam::mod_sample_cam::run_camera_loop(&mut board)
 }

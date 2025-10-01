@@ -1,33 +1,25 @@
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_sys::camera;
-use crate::board::{Board};
-use crate::board2::Board2;
+use crate::board::Board;
 use crate::espcam::Camera;
 
-pub fn run_camera_loop(board2: &mut Board2) -> anyhow::Result<()> {
+pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
 
-    let mut led = &mut board2.led;
-    let mut flash = &mut board2.flash;
+    let mut led = &mut board.led;
+    let camera = &board.camera;
 
-    //
-    // let mut led = board.take_led()?;
-    // let mut flash = board.take_flash()?;
-
-    // let camera = board.take_camera()?;
-    //
-    //
     loop {
-    //     let framebuffer = camera.get_framebuffer();
-    //
-    //     if let Some(framebuffer) = framebuffer {
-    //         log::info!("@@ Got framebuffer!");
-    //         log::info!("width: {}", framebuffer.width());
-    //         log::info!("height: {}", framebuffer.height());
-    //         log::info!("len: {}", framebuffer.data().len());
-    //         log::info!("format: {}", framebuffer.format());
-    //     } else {
-    //         log::info!("@@ no framebuffer");
-    //     }
+        let framebuffer = camera.get_framebuffer();
+    
+        if let Some(framebuffer) = framebuffer {
+            log::info!("@@ Got framebuffer!");
+            log::info!("width: {}", framebuffer.width());
+            log::info!("height: {}", framebuffer.height());
+            log::info!("len: {}", framebuffer.data().len());
+            log::info!("format: {}", framebuffer.format());
+        } else {
+            log::info!("@@ no framebuffer");
+        }
 
         led.set_high()?;
         // we are sleeping here to make sure the watchdog isn't triggered

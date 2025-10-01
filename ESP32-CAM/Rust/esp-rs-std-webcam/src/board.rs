@@ -1,59 +1,53 @@
 use crate::espcam::Camera;
-use esp_idf_hal::gpio;
-use esp_idf_hal::gpio::{Gpio33, Gpio4, Output, PinDriver};
+use esp_idf_hal::gpio::{AnyOutputPin, Output, OutputPin, PinDriver};
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_sys::{camera, EspError};
+use esp_idf_sys::camera;
 
 pub struct Board {
-    pub pins: gpio::Pins,
+    pub led: PinDriver<'static, AnyOutputPin, Output>,
+    pub flash: PinDriver<'static, AnyOutputPin, Output>,
+    pub camera: Camera<'static>,
 }
 
 impl Board {
     pub fn init() -> Board {
         let peripherals = Peripherals::take().unwrap();
 
+        let camera = Camera::new(
+            peripherals.pins.gpio32,                                // pin_pwdn
+            peripherals.pins.gpio0,                                 // pin_xclk
+            peripherals.pins.gpio5,                                 // pin_d0
+            peripherals.pins.gpio18,                                // pin_d1
+            peripherals.pins.gpio19,                                // pin_d2
+            peripherals.pins.gpio21,                                // pin_d3
+            peripherals.pins.gpio36,                                // pin_d4
+            peripherals.pins.gpio39,                                // pin_d5
+            peripherals.pins.gpio34,                                // pin_d6
+            peripherals.pins.gpio35,                                // pin_d7
+            peripherals.pins.gpio25,                                // pin_vsync
+            peripherals.pins.gpio23,                                // pin_href
+            peripherals.pins.gpio22,                                // pin_pclk
+            peripherals.pins.gpio26,                                // pin_sda
+            peripherals.pins.gpio27,                                // pin_scl
+            camera::pixformat_t_PIXFORMAT_GRAYSCALE,                // pixel_format
+            camera::framesize_t_FRAMESIZE_VGA,                      // frame_size
+            10,                                                     // jpeg_quality 0..63
+            2,                                                      // fb_count
+        );
+
         Board {
-            pins: peripherals.pins,
+            led: PinDriver::output(peripherals.pins.gpio33.downgrade_output()).unwrap(),
+            flash: PinDriver::output(peripherals.pins.gpio4.downgrade_output()).unwrap(),
+            camera: camera.unwrap(),
         }
     }
-
-    pub fn take_led(&mut self) -> Result<PinDriver<Gpio33, Output>, EspError> {
-        PinDriver::output(&mut self.pins.gpio33)
-    }
-
-    pub fn take_flash(&mut self) -> Result<PinDriver<Gpio4, Output>, EspError> {
-        PinDriver::output(&mut self.pins.gpio4)
-    }
-
-    pub fn take_camera(&mut self) -> Result<Camera, EspError> {
-        Camera::new(
-            &mut self.pins.gpio32,                                // pin_pwdn
-            &mut self.pins.gpio0,                                 // pin_xclk
-            &mut self.pins.gpio5,                                 // pin_d0
-            &mut self.pins.gpio18,                                // pin_d1
-            &mut self.pins.gpio19,                                // pin_d2
-            &mut self.pins.gpio21,                                // pin_d3
-            &mut self.pins.gpio36,                                // pin_d4
-            &mut self.pins.gpio39,                                // pin_d5
-            &mut self.pins.gpio34,                                // pin_d6
-            &mut self.pins.gpio35,                                // pin_d7
-            &mut self.pins.gpio25,                                // pin_vsync
-            &mut self.pins.gpio23,                                // pin_href
-            &mut self.pins.gpio22,                                // pin_pclk
-            &mut self.pins.gpio26,                                // pin_sda
-            &mut self.pins.gpio27,                                // pin_scl
-            // camera::pixformat_t_PIXFORMAT_JPEG,        // pixel_format
-            camera::pixformat_t_PIXFORMAT_GRAYSCALE,        // pixel_format
-            camera::framesize_t_FRAMESIZE_VGA,        // frame_size
-        )
-    }
 }
-
 
 fn sample_board() {
     let mut board = Board::init();
 
-    let led = board.take_led();
-    let flash = board.take_flash(); // Error: cannot borrow `board` as mutable more than once at a time
+    let _led = board.led;
+    let _flash = board.flash;
+    let _camera = board.camera;
 }
 
