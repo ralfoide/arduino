@@ -3,6 +3,8 @@
 #   . export-esp.sh
 # to source into current bash env
 
-export LIBCLANG_PATH="C:\Users\$USER\.rustup\toolchains\esp\xtensa-esp32-elf-clang\esp-clang\bin\libclang.dll"
-export PATH="${PATH}:"$(cygpath "C:\Users\$USER\.rustup\toolchains\esp\xtensa-esp32-elf-clang\esp-clang\bin")
-export PATH="${PATH}:"$(cygpath "C:\Users\$USER\.rustup\toolchains\esp\xtensa-esp-elf\bin")
+export LIBCLANG_PATH="C:\Users\\$USER\.rustup\toolchains\esp\xtensa-esp32-elf-clang\esp-clang\bin\libclang.dll"
+export PATH=$(cygpath "C:\Users\\$USER\.rustup\toolchains\esp\xtensa-esp32-elf-clang\esp-clang\bin")":${PATH}"
+export PATH=$(cygpath "C:\Users\\$USER\.rustup\toolchains\esp\xtensa-esp-elf\bin")":${PATH}"
+echo "PATH=$PATH"
+
