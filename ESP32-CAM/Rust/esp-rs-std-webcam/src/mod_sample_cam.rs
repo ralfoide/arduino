@@ -13,10 +13,12 @@ pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
         let framebuffer = camera.get_framebuffer();
     
         if let Some(framebuffer) = framebuffer {
-            log::info!("@@ Got framebuffer!");
+            let data = framebuffer.data();
+            log::info!("@@ Got framebuffer: {}", framebuffer);
             log::info!("   width: {}", framebuffer.width());
             log::info!("   height: {}", framebuffer.height());
-            log::info!("   len: {}", framebuffer.data().len());
+            log::info!("   data: {:p}", data);
+            log::info!("   len: {}", data.len());
             log::info!("   format: {}", framebuffer.format());
         } else {
             log::info!("@@ no framebuffer");

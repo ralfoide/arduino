@@ -29,10 +29,11 @@ impl Board {
             peripherals.pins.gpio22,                                // pin_pclk
             peripherals.pins.gpio26,                                // pin_sda
             peripherals.pins.gpio27,                                // pin_scl
-            camera::pixformat_t_PIXFORMAT_GRAYSCALE,                // pixel_format
+            camera::pixformat_t_PIXFORMAT_JPEG,                     // pixel_format
+            // camera::pixformat_t_PIXFORMAT_GRAYSCALE,             // pixel_format
             camera::framesize_t_FRAMESIZE_VGA,                      // frame_size
             10,                                                     // jpeg_quality 0..63
-            2,                                                      // fb_count
+            3,                                                      // fb_count
         );
 
         Board {

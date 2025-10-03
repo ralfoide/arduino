@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Formatter;
 use std::marker::PhantomData;
 
 use esp_idf_hal::gpio::*;
@@ -32,6 +34,14 @@ impl<'a> FrameBuffer<'a> {
 
     pub fn fb_return(&self) {
         unsafe { camera::esp_camera_fb_return(self.fb) }
+    }
+}
+
+//noinspection RsSuperTraitIsNotImplemented (supress an RR specific error)
+impl fmt::Display for FrameBuffer<'_> {
+    //noinspection RsFormatMacroErrors (supress an RR specific error)
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "FB({:p}) -> fb {:p}", self, self.fb)
     }
 }
 
