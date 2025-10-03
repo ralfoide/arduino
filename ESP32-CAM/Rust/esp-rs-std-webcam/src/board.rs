@@ -2,16 +2,36 @@ use crate::espcam::Camera;
 use esp_idf_hal::gpio::{AnyOutputPin, Output, OutputPin, PinDriver};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys::camera;
+use std::sync::{Mutex, OnceLock};
+use anyhow::anyhow;
 
 pub struct Board {
-    pub led: PinDriver<'static, AnyOutputPin, Output>,
-    pub flash: PinDriver<'static, AnyOutputPin, Output>,
-    pub camera: Camera<'static>,
+    pub led: OnceLock<Mutex< PinDriver<'static, AnyOutputPin, Output> >>,
+    pub flash: OnceLock<Mutex< PinDriver<'static, AnyOutputPin, Output> >>,
+    pub camera: OnceLock<Mutex< Camera<'static> >>,
 }
 
+static BOARD: Board = Board {
+    led: OnceLock::new(),
+    flash: OnceLock::new(),
+    camera: OnceLock::new(),
+};
+
 impl Board {
-    pub fn init() -> Board {
-        let peripherals = Peripherals::take().unwrap();
+    pub fn get() -> &'static Board {
+        &BOARD
+    }
+
+    pub fn init() -> anyhow::Result<()> {
+        let peripherals = Peripherals::take()?;
+
+        BOARD.led.set(Mutex::new(
+            PinDriver::output(peripherals.pins.gpio33.downgrade_output())?
+        )).ok();
+
+        BOARD.flash.set(Mutex::new(
+            PinDriver::output(peripherals.pins.gpio4.downgrade_output())?
+        )).ok();
 
         let camera = Camera::new(
             peripherals.pins.gpio32,                                // pin_pwdn
@@ -34,12 +54,9 @@ impl Board {
             camera::framesize_t_FRAMESIZE_VGA,                      // frame_size
             10,                                                     // jpeg_quality 0..63
             3,                                                      // fb_count
-        );
+        )?;
 
-        Board {
-            led: PinDriver::output(peripherals.pins.gpio33.downgrade_output()).unwrap(),
-            flash: PinDriver::output(peripherals.pins.gpio4.downgrade_output()).unwrap(),
-            camera: camera.unwrap(),
-        }
+        BOARD.camera.set(Mutex::new(camera)).ok();
+        Ok(())
     }
 }

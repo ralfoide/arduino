@@ -1,13 +1,10 @@
 use esp_idf_hal::cpu;
 use esp_idf_hal::delay::FreeRtos;
-use esp_idf_sys::camera;
 use crate::board::Board;
-use crate::espcam::Camera;
 
-pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
-
-    let mut led = &mut board.led;
-    let camera = &board.camera;
+pub fn run_camera(board: &Board) {
+    let camera_mutex = &board.camera.get().unwrap();
+    let camera = camera_mutex.lock().unwrap();
 
     loop {
         let framebuffer = camera.get_framebuffer();
@@ -24,13 +21,9 @@ pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
             log::info!("@@ no framebuffer");
         }
 
-        led.set_high()?;
-        // we are sleeping here to make sure the watchdog isn't triggered
-        FreeRtos::delay_ms(1000);
-
-        led.set_low()?;
-        FreeRtos::delay_ms(1000);
         let core_id: i32 = cpu::core().into();
-        log::info!("@@ Task ..1 running on Core #{}", core_id);
+        log::info!("@@ Task cam running on Core #{}", core_id);
+
+        FreeRtos::delay_ms(3000);
     }
 }

@@ -27,20 +27,31 @@ fn main() -> anyhow::Result<()> {
     free_ram_bytes = unsafe { heap_caps_get_free_size(MALLOC_CAP_SPIRAM) };
     log::info!("@@ Free external RAM: {} bytes", free_ram_bytes);
 
-    let mut board = Board::init();
+    Board::init()?;
 
     // Configure threads to have an affinity on Core 1.
-    create_thread("io_task\0", 10, Core::Core1)
-        .spawn(move || {
-            task_core1(&mut board)
-        }).unwrap();
+    create_thread("cam_task\0", 1, Core::Core1)
+        .spawn(|| {
+            esp_rs_std_webcam::task_camera::run_camera(Board::get())
+        })?;
 
-    // Block on an infinite "task" with affinity to Core 0.
+    create_thread("led_task\0", 1, Core::Core1)
+        .spawn(|| {
+            esp_rs_std_webcam::task_led::run_led(Board::get())
+        })?;
+
+    // Block on an infinite "task" (not a thread) with affinity to Core 0.
     task_core0();
 
     Ok(())
 }
 
+/*
+    Creates a new thread.
+    - name: Must be static, max char 16, and containing a terminating \0 character.
+    - priority: 1..24 (higher for higher priority). tskIDLE_PRIORITY is 0 and is not allowed here.
+    - core: either Core::Core0 or Core::Core1.
+ */
 fn create_thread(name: &'static str, priority: u8 /* 1..24 */, core: Core) -> Builder {
     ThreadSpawnConfiguration {
         name: Some(name.as_bytes()), // name must end with \0
@@ -62,9 +73,3 @@ fn task_core0() {
     }
 }
 
-fn task_core1(board: &mut Board) {
-    let core_id: i32 = cpu::core().into();
-    log::info!("@@ Task ..1 running on Core #{}", core_id);
-    esp_rs_std_webcam::mod_sample_cam::run_camera_loop(board);
-    FreeRtos::delay_ms(3000);
-}
