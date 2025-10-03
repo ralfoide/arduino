@@ -1,3 +1,4 @@
+use esp_idf_hal::cpu;
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_sys::camera;
 use crate::board::Board;
@@ -13,10 +14,10 @@ pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
     
         if let Some(framebuffer) = framebuffer {
             log::info!("@@ Got framebuffer!");
-            log::info!("width: {}", framebuffer.width());
-            log::info!("height: {}", framebuffer.height());
-            log::info!("len: {}", framebuffer.data().len());
-            log::info!("format: {}", framebuffer.format());
+            log::info!("   width: {}", framebuffer.width());
+            log::info!("   height: {}", framebuffer.height());
+            log::info!("   len: {}", framebuffer.data().len());
+            log::info!("   format: {}", framebuffer.format());
         } else {
             log::info!("@@ no framebuffer");
         }
@@ -27,6 +28,7 @@ pub fn run_camera_loop(board: &mut Board) -> anyhow::Result<()> {
 
         led.set_low()?;
         FreeRtos::delay_ms(1000);
-        log::info!("---loop---!");
+        let core_id: i32 = cpu::core().into();
+        log::info!("@@ Task ..1 running on Core #{}", core_id);
     }
 }

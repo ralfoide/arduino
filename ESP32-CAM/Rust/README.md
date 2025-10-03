@@ -81,7 +81,12 @@ These (ESP-IDF Build Options)[https://github.com/esp-rs/esp-idf-sys/blob/master/
 This is enough to prevent the long path errors.
 
 Building the `esp-idf-sys` create takes about 10-15 minutes on my system and uses about 3.8 GB _per version of the IDF_ in that global `esp-idf` folder.
-It gets rebuilt when the compilation flags change in `.cargo/config.toml`.
+It also seems to get rebuilt when the `.cargo/config.toml` changes.
+To make the long build less opaque, build using the very verbose flag:
+
+```shell
+$ cargo build -vv
+```
 
 
 ~~

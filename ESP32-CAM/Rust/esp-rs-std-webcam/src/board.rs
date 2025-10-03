@@ -42,12 +42,3 @@ impl Board {
         }
     }
 }
-
-fn sample_board() {
-    let mut board = Board::init();
-
-    let _led = board.led;
-    let _flash = board.flash;
-    let _camera = board.camera;
-}
-
