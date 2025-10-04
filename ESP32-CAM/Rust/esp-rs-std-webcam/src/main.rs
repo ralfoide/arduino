@@ -1,10 +1,13 @@
-use std::thread::Builder;
+use std::pin::pin;
 use esp_idf_hal::cpu;
 use esp_idf_hal::cpu::Core;
 use esp_idf_hal::delay::FreeRtos;
+use esp_idf_hal::task::block_on;
 use esp_idf_hal::task::thread::ThreadSpawnConfiguration;
+use esp_idf_svc::eventloop::{EspEventLoop, EspSystemEventLoop, System};
 use esp_idf_sys::{heap_caps_get_free_size, MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM};
 use esp_rs_std_webcam::board::Board;
+use esp_rs_std_webcam::task_camera::CameraCountEvent;
 
 fn main() -> anyhow::Result<()> {
 
@@ -27,12 +30,15 @@ fn main() -> anyhow::Result<()> {
     free_ram_bytes = unsafe { heap_caps_get_free_size(MALLOC_CAP_SPIRAM) };
     log::info!("@@ Free external RAM: {} bytes", free_ram_bytes);
 
+    let sys_loop1 = EspSystemEventLoop::take()?;
+    let sys_loop0 = sys_loop1.clone();
+
     Board::init()?;
 
     // Configure threads to have an affinity on Core 1.
     create_thread("cam_task\0", 1, Core::Core1)
         .spawn(|| {
-            esp_rs_std_webcam::task_camera::run_camera(Board::get())
+            esp_rs_std_webcam::task_camera::run_camera(Board::get(), sys_loop1)
         })?;
 
     create_thread("led_task\0", 1, Core::Core1)
@@ -41,9 +47,7 @@ fn main() -> anyhow::Result<()> {
         })?;
 
     // Block on an infinite "task" (not a thread) with affinity to Core 0.
-    task_core0();
-
-    Ok(())
+    block_on(pin!(task_core0(sys_loop0)))
 }
 
 /*
@@ -52,7 +56,7 @@ fn main() -> anyhow::Result<()> {
     - priority: 1..24 (higher for higher priority). tskIDLE_PRIORITY is 0 and is not allowed here.
     - core: either Core::Core0 or Core::Core1.
  */
-fn create_thread(name: &'static str, priority: u8 /* 1..24 */, core: Core) -> Builder {
+fn create_thread(name: &'static str, priority: u8 /* 1..24 */, core: Core) -> std::thread::Builder {
     ThreadSpawnConfiguration {
         name: Some(name.as_bytes()), // name must end with \0
         stack_size: 4096,
@@ -65,11 +69,21 @@ fn create_thread(name: &'static str, priority: u8 /* 1..24 */, core: Core) -> Bu
     std::thread::Builder::new()
 }
 
-fn task_core0() {
+async fn task_core0(sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
+    let core_id: i32 = cpu::core().into();
+    log::info!("@@ Task 0.. running on Core #{}", core_id);
+
+    // RM: Note that subscribe_async _forces_ the recv().await call below to be blocking.
+    // For a non-blocking version, use subscribe() with a closure callback that emits a signal.
+    let mut subscription = sys_loop.subscribe_async::<CameraCountEvent>()?;
+
     loop {
+        let event = subscription.recv().await?;
+        log::info!("@@ Task 0 event recv: {:?}", event);
+
         let core_id: i32 = cpu::core().into();
         log::info!("@@ Task 0.. running on Core #{}", core_id);
-        FreeRtos::delay_ms(1000);
+        FreeRtos::delay_ms(100);
     }
 }
 
