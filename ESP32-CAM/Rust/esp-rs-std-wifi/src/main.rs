@@ -20,7 +20,7 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::{BlockingWifi, EspWifi},
 };
-
+use esp_idf_svc::sys::{esp, esp_wifi_set_bandwidth, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
 use log::*;
 
 use serde::Deserialize;
@@ -40,7 +40,7 @@ const MAX_LEN: usize = 128;
 const STACK_SIZE: usize = 10240;
 
 // Wi-Fi channel, between 1 and 11
-const CHANNEL: u8 = 11;
+const CHANNEL: u8 = 5;
 
 #[derive(Deserialize)]
 struct FormData<'a> {
@@ -118,7 +118,7 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     // the client configuration from the http_client example.
     let wifi_configuration = wifi::Configuration::AccessPoint(AccessPointConfiguration {
         ssid: SSID.try_into().unwrap(),
-        ssid_hidden: true,
+        ssid_hidden: false,
         auth_method: AuthMethod::WPA2Personal,
         password: PASSWORD.try_into().unwrap(),
         channel: CHANNEL,
@@ -126,6 +126,9 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     });
 
     wifi.set_configuration(&wifi_configuration)?;
+
+    // RM switch the AP bandwidth to HT20
+    esp!(unsafe { esp_wifi_set_bandwidth(wifi_interface_t_WIFI_IF_AP, wifi_bandwidth_t_WIFI_BW_HT20) })?;
 
     wifi.start()?;
     info!("Wifi started");
