@@ -12,7 +12,7 @@ use embedded_svc::{
     io::{Read, Write},
     wifi::{self, AccessPointConfiguration, AuthMethod},
 };
-
+use embedded_svc::wifi::ClientConfiguration;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -25,11 +25,15 @@ use log::*;
 
 use serde::Deserialize;
 
-// For testing adhoc wifi AP purposes only:
-// const SSID: &str = env!("WIFI_SSID");
-// const PASSWORD: &str = env!("WIFI_PASS");
-const SSID: &str = "esp32_wifi";
-const PASSWORD: &str = "esp32_pass";
+// For testing wifi purposes only:
+const SSID: &str = env!("WIFI_SSID");
+const PASSWORD: &str = env!("WIFI_PASS");
+
+// const SSID: &str = "esp32_wifi";
+// const PASSWORD: &str = "esp32_pass";
+
+const WIFI_IS_AP: bool = false;
+
 
 static INDEX_HTML: &str = include_str!("http_server_page.html");
 
@@ -116,30 +120,45 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     // If instead of creating a new network you want to serve the page
     // on your local network, you can replace this configuration with
     // the client configuration from the http_client example.
-    let wifi_configuration = wifi::Configuration::AccessPoint(AccessPointConfiguration {
-        ssid: SSID.try_into().unwrap(),
-        ssid_hidden: false,
-        auth_method: AuthMethod::WPA2Personal,
-        password: PASSWORD.try_into().unwrap(),
-        channel: CHANNEL,
-        ..Default::default()
-    });
+
+    let wifi_configuration: wifi::Configuration = if WIFI_IS_AP {
+        // For the AP (adhoc wifi) case:
+        wifi::Configuration::AccessPoint(AccessPointConfiguration {
+            ssid: SSID.try_into().unwrap(),
+            ssid_hidden: false,
+            auth_method: AuthMethod::WPA2Personal,
+            password: PASSWORD.try_into().unwrap(),
+            channel: CHANNEL,
+            ..Default::default()
+        })
+    } else {
+        // To join an existing Access Point:
+        wifi::Configuration::Client(ClientConfiguration {
+            ssid: SSID.try_into().unwrap(),
+            bssid: None,
+            auth_method: AuthMethod::WPA2Personal,
+            password: PASSWORD.try_into().unwrap(),
+            channel: None,
+            ..Default::default()
+        })
+    };
 
     wifi.set_configuration(&wifi_configuration)?;
 
-    // RM switch the AP bandwidth to HT20
-    esp!(unsafe { esp_wifi_set_bandwidth(wifi_interface_t_WIFI_IF_AP, wifi_bandwidth_t_WIFI_BW_HT20) })?;
+    if WIFI_IS_AP {
+        // RM switch the AP bandwidth to HT20
+        esp!(unsafe { esp_wifi_set_bandwidth(wifi_interface_t_WIFI_IF_AP, wifi_bandwidth_t_WIFI_BW_HT20) })?;
+    }
 
     wifi.start()?;
     info!("Wifi started");
 
     // If using a client configuration you need
     // to connect to the network with:
-    //
-    //  ```
-    //  wifi.connect()?;
-    //  info!("Wifi connected");
-    // ```
+    if !WIFI_IS_AP {
+         wifi.connect()?;
+         info!("Wifi connected");
+    }
 
     wifi.wait_netif_up()?;
     info!("Wifi netif up");
