@@ -6,3 +6,4 @@
 .git
 
 components/esp32-camera
+wifi_info.rs

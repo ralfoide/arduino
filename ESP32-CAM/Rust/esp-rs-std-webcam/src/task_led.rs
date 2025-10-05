@@ -2,7 +2,7 @@ use esp_idf_hal::cpu;
 use esp_idf_hal::delay::FreeRtos;
 use crate::board::Board;
 
-pub fn run_led(board: &Board) {
+pub fn run_led(board: &'static Board) {
 
     let led_mutex = &board.led.get().unwrap();
     let mut led = led_mutex.lock().unwrap();

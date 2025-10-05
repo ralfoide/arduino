@@ -30,24 +30,32 @@ fn main() -> anyhow::Result<()> {
     free_ram_bytes = unsafe { heap_caps_get_free_size(MALLOC_CAP_SPIRAM) };
     log::info!("@@ Free external RAM: {} bytes", free_ram_bytes);
 
-    let sys_loop1 = EspSystemEventLoop::take()?;
-    let sys_loop0 = sys_loop1.clone();
+    let sys_loop = EspSystemEventLoop::take()?;
+    let sys_loop_cam = sys_loop.clone();
+    let sys_loop_wifi = sys_loop.clone();
 
     Board::init()?;
 
     // Configure threads to have an affinity on Core 1.
-    create_thread("cam_task\0", 1, Core::Core1)
+    create_thread("cam_task\0", 4096, 1, Core::Core1)
         .spawn(|| {
-            esp_rs_std_webcam::task_camera::run_camera(Board::get(), sys_loop1)
+            // esp_rs_std_webcam::task_camera::run_camera(Board::get(), sys_loop_cam)
         })?;
 
-    create_thread("led_task\0", 1, Core::Core1)
+    create_thread("led_task\0", 4096, 1, Core::Core1)
         .spawn(|| {
-            esp_rs_std_webcam::task_led::run_led(Board::get())
+            // esp_rs_std_webcam::task_led::run_led(Board::get())
         })?;
+
+    // create_thread("wifi_task\0", 4096*4, 1, Core::Core0)
+    //     .spawn(|| {
+    //         esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi)
+        // })?;
+    let res = esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi);
+    log::info!("@@ [WIFI RETURNED] {:?}", res);
 
     // Block on an infinite "task" (not a thread) with affinity to Core 0.
-    block_on(pin!(task_core0(sys_loop0)))
+    block_on(pin!(task_core0(sys_loop)))
 }
 
 /*
@@ -56,10 +64,10 @@ fn main() -> anyhow::Result<()> {
     - priority: 1..24 (higher for higher priority). tskIDLE_PRIORITY is 0 and is not allowed here.
     - core: either Core::Core0 or Core::Core1.
  */
-fn create_thread(name: &'static str, priority: u8 /* 1..24 */, core: Core) -> std::thread::Builder {
+fn create_thread(name: &'static str, stack_size: usize, priority: u8 /* 1..24 */, core: Core) -> std::thread::Builder {
     ThreadSpawnConfiguration {
         name: Some(name.as_bytes()), // name must end with \0
-        stack_size: 4096,
+        stack_size,
         priority,
         pin_to_core: Some(core),
         ..Default::default()

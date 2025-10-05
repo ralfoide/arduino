@@ -4,7 +4,7 @@ use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::eventloop::{EspEvent, EspEventDeserializer, EspEventLoop, EspEventPostData, EspEventSerializer, EspEventSource, EspSystemEventLoop, System};
 use crate::board::Board;
 
-pub fn run_camera(board: &Board, sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
+pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
     let camera_mutex = &board.camera.get().unwrap();
     let camera = camera_mutex.lock().unwrap();
 

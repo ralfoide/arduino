@@ -1,20 +1,25 @@
 use crate::espcam::Camera;
 use esp_idf_hal::gpio::{AnyOutputPin, Output, OutputPin, PinDriver};
+use esp_idf_hal::modem::Modem;
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_sys::camera;
 use std::sync::{Mutex, OnceLock};
-use anyhow::anyhow;
+use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvsPartition, NvsDefault};
 
 pub struct Board {
     pub led: OnceLock<Mutex< PinDriver<'static, AnyOutputPin, Output> >>,
     pub flash: OnceLock<Mutex< PinDriver<'static, AnyOutputPin, Output> >>,
     pub camera: OnceLock<Mutex< Camera<'static> >>,
+    pub modem: OnceLock<Mutex< Modem >>,
+    pub nvs: OnceLock<Mutex< EspNvsPartition<NvsDefault> >>,
 }
 
 static BOARD: Board = Board {
     led: OnceLock::new(),
     flash: OnceLock::new(),
     camera: OnceLock::new(),
+    modem: OnceLock::new(),
+    nvs: OnceLock::new(),
 };
 
 impl Board {
@@ -57,6 +62,12 @@ impl Board {
         )?;
 
         BOARD.camera.set(Mutex::new(camera)).ok();
+
+        BOARD.modem.set(Mutex::new(peripherals.modem)).ok();
+
+        let nvs: EspNvsPartition<NvsDefault> = EspDefaultNvsPartition::take()?;
+        BOARD.nvs.set(Mutex::new(nvs)).ok();
+
         Ok(())
     }
 }
