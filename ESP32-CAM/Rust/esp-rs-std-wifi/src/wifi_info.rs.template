@@ -1,0 +1,12 @@
+// Duplicate this template as "wifi_info.rs" and edit the values.
+
+pub const WIFI_SSID: &str = "WIFI_SSID";
+pub const WIFI_PASSWD: &str = "WIFI_PASS";
+
+// Note: as an alternative we can also read vars from the environment, e.g.:
+// pub const WIFI_SSID: &str = env!("WIFI_SSID");
+// pub const WIFI_PASSWD: &str = env!("WIFI_PASS");
+// and then in Bash:
+// $ WIFI_SSID="some value" WIFI_PASS="some value" cargo build
+
+//~~

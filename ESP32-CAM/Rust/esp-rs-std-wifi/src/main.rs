@@ -26,11 +26,10 @@ use log::*;
 use serde::Deserialize;
 
 // For testing wifi purposes only:
-const SSID: &str = env!("WIFI_SSID");
-const PASSWORD: &str = env!("WIFI_PASS");
-
-// const SSID: &str = "esp32_wifi";
-// const PASSWORD: &str = "esp32_pass";
+// const AP_SSID: &str = env!("WIFI_SSID");
+// const AP_PASSWORD: &str = env!("WIFI_PASS");
+const AP_SSID: &str = "esp32_wifi";
+const AP_PASSWORD: &str = "esp32_pass";
 
 const WIFI_IS_AP: bool = false;
 
@@ -44,7 +43,7 @@ const MAX_LEN: usize = 128;
 const STACK_SIZE: usize = 10240;
 
 // Wi-Fi channel, between 1 and 11
-const CHANNEL: u8 = 5;
+const AP_CHANNEL: u8 = 5;
 
 #[derive(Deserialize)]
 struct FormData<'a> {
@@ -124,20 +123,20 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     let wifi_configuration: wifi::Configuration = if WIFI_IS_AP {
         // For the AP (adhoc wifi) case:
         wifi::Configuration::AccessPoint(AccessPointConfiguration {
-            ssid: SSID.try_into().unwrap(),
+            ssid: AP_SSID.try_into().unwrap(),
             ssid_hidden: false,
             auth_method: AuthMethod::WPA2Personal,
-            password: PASSWORD.try_into().unwrap(),
-            channel: CHANNEL,
+            password: AP_PASSWORD.try_into().unwrap(),
+            channel: AP_CHANNEL,
             ..Default::default()
         })
     } else {
         // To join an existing Access Point:
         wifi::Configuration::Client(ClientConfiguration {
-            ssid: SSID.try_into().unwrap(),
+            ssid: esp_rs_std_wifi::wifi_info::WIFI_SSID.try_into().unwrap(),
             bssid: None,
             auth_method: AuthMethod::WPA2Personal,
-            password: PASSWORD.try_into().unwrap(),
+            password: esp_rs_std_wifi::wifi_info::WIFI_PASSWD.try_into().unwrap(),
             channel: None,
             ..Default::default()
         })
@@ -163,7 +162,7 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     wifi.wait_netif_up()?;
     info!("Wifi netif up");
 
-    info!("Created Wi-Fi with WIFI_SSID `{SSID}` and WIFI_PASS `{PASSWORD}`");
+    info!("Created Wi-Fi");
 
     Ok(())
 }
