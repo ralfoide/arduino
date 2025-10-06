@@ -16,7 +16,10 @@ use embedded_svc::{
 };
 use embedded_svc::wifi::ClientConfiguration;
 use esp_idf_hal::cpu;
+use esp_idf_hal::cpu::Core;
+use esp_idf_hal::cpu::Core::Core1;
 use esp_idf_hal::delay::FreeRtos;
+use esp_idf_hal::task::thread::ThreadSpawnConfiguration;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -24,7 +27,9 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::{BlockingWifi, EspWifi},
 };
-use esp_idf_svc::sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
+use esp_idf_svc::eventloop::{EspEventLoop, System};
+use esp_idf_svc::nvs::{EspNvsPartition, NvsDefault};
+use esp_idf_svc::sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP, xTaskGetCurrentTaskHandle};
 use log::*;
 
 use serde::Deserialize;
@@ -60,11 +65,64 @@ fn main() -> anyhow::Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
+    log_task_info("MAIN");
+
     // Setup Wifi
 
     let peripherals = Peripherals::take()?;
     let sys_loop = EspSystemEventLoop::take()?;
     let nvs = EspDefaultNvsPartition::take()?;
+
+    let thread_handle = create_thread("wifi\0", 4096, 2, Core1)
+        .spawn(|| {
+            log_task_info("WIFI");
+            run_wifi(peripherals, sys_loop, nvs)
+        })?;
+
+    thread_handle.join().expect("@@ Thread join failed");
+
+    // // Main task no longer needed, free up some memory
+    Ok(())
+}
+
+/*
+    Creates a new thread.
+    - name: Must be static, max char 16, and containing a terminating \0 character.
+    - priority: 1..24 (higher for higher priority). tskIDLE_PRIORITY is 0 and is not allowed here.
+    - core: either Core::Core0 or Core::Core1.
+ */
+fn create_thread(name: &'static str, stack_size: usize, priority: u8 /* 1..24 */, core: Core) -> std::thread::Builder {
+    ThreadSpawnConfiguration {
+        name: Some(name.as_bytes()), // name must end with \0
+        stack_size,
+        priority,
+        pin_to_core: Some(core),
+        ..Default::default()
+    }.set()
+        .unwrap();
+
+    std::thread::Builder::new()
+        .stack_size(stack_size)
+}
+
+fn log_task_info(name: &str) {
+    let task_handle = unsafe { xTaskGetCurrentTaskHandle() };
+    let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark(task_handle) };
+    let stack_high_water_mark2 = unsafe { uxTaskGetStackHighWaterMark2(task_handle) };
+    let core_id: i32 = cpu::core().into();
+    info!("@@ [{}] Task Handle: {:?} -- Core {} -- Stack high mark: {} vs {}",
+        name,
+        task_handle,
+        core_id,
+        stack_high_water_mark,
+        stack_high_water_mark2);
+}
+
+fn run_wifi(
+    peripherals: Peripherals,
+    sys_loop: EspEventLoop<System>,
+    nvs: EspNvsPartition<NvsDefault>,
+) -> anyhow::Result<()> {
 
     let mut wifi = BlockingWifi::wrap(
         EspWifi::new(peripherals.modem, sys_loop.clone(), Some(nvs))?,
@@ -116,14 +174,15 @@ fn main() -> anyhow::Result<()> {
     loop {
         let core_id: i32 = cpu::core().into();
         let counter = req_count.load(Ordering::Relaxed);
-        let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
-        info!("@@ [WIFI] loop.. Core #{}; {} requests; {} bytes stack mark",
+        let stack_high_water_mark1 = unsafe { uxTaskGetStackHighWaterMark(ptr::null_mut()) };
+        let stack_high_water_mark2 = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
+        info!("@@ [WIFI] loop.. Core #{}; {} requests; {} -- {}  stack mark",
             core_id,
             counter,
-            stack_high_water_mark * 4);
+            stack_high_water_mark1,
+            stack_high_water_mark2);
         FreeRtos::delay_ms(1000);
     }
-
 
     // // Keep wifi and the server running beyond when main() returns (forever)
     // // Do not call this if you ever want to stop or access them later.
@@ -132,9 +191,6 @@ fn main() -> anyhow::Result<()> {
     // // https://doc.rust-lang.org/stable/core/mem/fn.forget.html
     // core::mem::forget(wifi);
     // core::mem::forget(server);
-    //
-    // // Main task no longer needed, free up some memory
-    // Ok(())
 }
 
 fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()> {
@@ -174,8 +230,7 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     wifi.start()?;
     info!("Wifi started");
 
-    // If using a client configuration you need
-    // to connect to the network with:
+    // If using a client configuration you need to connect to the network with:
     if !WIFI_IS_AP {
          wifi.connect()?;
          info!("Wifi connected");
