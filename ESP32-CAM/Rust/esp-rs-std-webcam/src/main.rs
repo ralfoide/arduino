@@ -54,13 +54,13 @@ fn main() -> anyhow::Result<()> {
             // esp_rs_std_webcam::task_led::run_led(Board::get())
         })?;
 
-    create_thread("wifi_task\0", 4096*2, 3, Core::Core0)
+    let wifi_handle = create_thread("wifi_task\0", 4096, 3, Core::Core1)
         .spawn(|| {
             log_task_info("WIFI");
-            // esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi)
+            esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi)
         })?;
-    let res = esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi);
-    log::info!("@@ [WIFI RETURNED] {:?}", res);
+
+    wifi_handle.join().expect("@@ Thread join failed");
 
     // Block on an infinite "task" (not a thread) with affinity to Core 0.
     block_on(pin!(task_core0(sys_loop)))
@@ -94,7 +94,7 @@ fn log_task_info(name: &str) {
         name,
         task_handle,
         core_id,
-        stack_high_water_mark * 4);
+        stack_high_water_mark);
 }
 
 async fn task_core0(sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
@@ -106,7 +106,7 @@ async fn task_core0(sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
         let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
         let core_id: i32 = cpu::core().into();
         log::info!("@@ Task 0.. running on Core #{}", core_id);
-        log::info!("@@ [TASK 0] Stack High Water Mark: {} bytes", stack_high_water_mark * 4);
+        log::info!("@@ [TASK 0] Stack High Water Mark: {} bytes", stack_high_water_mark);
 
         let event = subscription.recv().await?;
         log::info!("@@ Task 0 event recv: {:?}", event);

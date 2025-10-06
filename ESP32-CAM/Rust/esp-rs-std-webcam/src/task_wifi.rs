@@ -1,23 +1,24 @@
 use std::ptr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, Ordering};
+use embedded_svc::http::Method;
+use embedded_svc::wifi::{AccessPointConfiguration, AuthMethod, ClientConfiguration};
 use esp_idf_hal::cpu;
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::eventloop::{EspEventLoop, System};
-use esp_idf_svc::http::Method;
 use esp_idf_svc::http::server::{EspHttpConnection, EspHttpServer, Request};
-use esp_idf_svc::wifi::{AccessPointConfiguration, AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi};
-use esp_idf_sys::uxTaskGetStackHighWaterMark2;
+use esp_idf_svc::wifi::{BlockingWifi, Configuration, EspWifi};
+use esp_idf_sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
 use crate::board::Board;
 use crate::wifi_info;
 
-const HTTPD_STACK_SIZE: usize = 4096;
+const HTTPD_STACK_SIZE: usize = 10240;
 const WIFI_AP_CHANNEL: u8 = 3;
-const WIFI_IS_AP: bool = true;
+const WIFI_IS_AP: bool = false;
 
 pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
     let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
-    log::info!("@@ [WIFI] Stack High Water Mark: {} bytes", stack_high_water_mark * 4);
+    log::info!("@@ [WIFI] Stack High Water Mark: {} bytes", stack_high_water_mark);
 
     let modem_mutex = &board.modem.get().unwrap();
     let modem = modem_mutex.lock().unwrap();
@@ -47,7 +48,7 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
         let core_id: i32 = cpu::core().into();
         let counter = req_count.load(Ordering::Relaxed);
         let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
-        log::info!("@@ [WIFI] Stack High Water Mark: {} bytes", stack_high_water_mark * 4);
+        log::info!("@@ [WIFI] Stack High Water Mark: {} bytes", stack_high_water_mark);
         log::info!("@@ [WIFI] loop.. running on Core #{}... {} requests", core_id, counter);
         FreeRtos::delay_ms(1000);
     }
@@ -67,7 +68,7 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
         // For the AP (adhoc wifi) case:
         Configuration::AccessPoint(AccessPointConfiguration {
             ssid: "AP_WIFI_SSID".try_into().unwrap(),
-            ssid_hidden: true,
+            ssid_hidden: false,
             auth_method: AuthMethod::WPA2Personal,
             password: wifi_info::WIFI_PASSWD.try_into().unwrap(),
             channel: WIFI_AP_CHANNEL,
@@ -87,8 +88,19 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
 
     wifi.set_configuration(&wifi_configuration)?;
 
+    if WIFI_IS_AP {
+        // switch the AP bandwidth to HT20
+        esp!(unsafe { esp_wifi_set_bandwidth(wifi_interface_t_WIFI_IF_AP, wifi_bandwidth_t_WIFI_BW_HT20) })?;
+    }
+
     wifi.start()?;
-    log::info!("@@ [WIFI] Connected to {}, waiting for netif up", wifi_info::WIFI_SSID);
+    log::info!("@@ [WIFI] Started for SSID {}", wifi_info::WIFI_SSID);
+
+    // If using a client configuration you need to connect to the network with:
+    if !WIFI_IS_AP {
+        wifi.connect()?;
+        log::info!("@@ [WIFI] connected");
+    }
 
     // Note: wait_netif_up has a 15 seconds timeout.
     loop {
