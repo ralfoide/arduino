@@ -10,6 +10,7 @@ use esp_idf_svc::http::server::{EspHttpConnection, EspHttpServer, Request};
 use esp_idf_svc::wifi::{BlockingWifi, Configuration, EspWifi};
 use esp_idf_sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
 use crate::board::Board;
+use crate::shared_data::SHARED_DATA;
 use crate::wifi_info;
 
 const HTTPD_STACK_SIZE: usize = 8192;
@@ -58,8 +59,17 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
 
 fn handle_req(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) -> anyhow::Result<()> {
     req_count.fetch_add(1, Ordering::Relaxed);
+    let frame_counter = SHARED_DATA.frame_counter.load(Ordering::Relaxed);
+    let html = format!(
+r#"<html>
+<body>
+Esp-rs Sample <br>
+Frame counter: {} <br>
+</body>
+</html>"#,
+        frame_counter);
     req.into_ok_response()?
-        .write("<html><body>esp-rs</body></html>".as_bytes()).ok();
+        .write(html.as_bytes()).ok();
     Ok(())
 }
 

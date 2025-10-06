@@ -1,8 +1,10 @@
 use std::ffi::CStr;
+use std::sync::atomic::Ordering;
 use esp_idf_hal::{cpu, delay};
 use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::eventloop::{EspEvent, EspEventDeserializer, EspEventLoop, EspEventPostData, EspEventSerializer, EspEventSource, EspSystemEventLoop, System};
 use crate::board::Board;
+use crate::shared_data::SHARED_DATA;
 
 pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
     let camera_mutex = &board.camera.get().unwrap();
@@ -24,6 +26,7 @@ pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyh
             log::info!("   len: {}", data.len());
             log::info!("   format: {}", framebuffer.format());
 
+            SHARED_DATA.frame_counter.fetch_add(1, Ordering::Relaxed);
             count_event.frame_count += 1;
             sys_loop.post::<CameraCountEvent>(&count_event, delay::BLOCK)?;
 
