@@ -45,22 +45,20 @@ fn main() -> anyhow::Result<()> {
     create_thread("cam_task\0", 4096, 1, Core::Core1)
         .spawn(|| {
             log_task_info("CAM");
-            // esp_rs_std_webcam::task_camera::run_camera(Board::get(), sys_loop_cam)
+            esp_rs_std_webcam::task_camera::run_camera(Board::get(), sys_loop_cam)
         })?;
 
-    create_thread("led_task\0", 4096, 2, Core::Core1)
+    create_thread("led_task\0", 4096, 6, Core::Core1)
         .spawn(|| {
             log_task_info("LED");
-            // esp_rs_std_webcam::task_led::run_led(Board::get())
+            esp_rs_std_webcam::task_led::run_led(Board::get())
         })?;
 
-    let wifi_handle = create_thread("wifi_task\0", 4096, 3, Core::Core1)
+    create_thread("wifi_task\0", 8192, 2, Core::Core1)
         .spawn(|| {
             log_task_info("WIFI");
             esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi)
         })?;
-
-    wifi_handle.join().expect("@@ Thread join failed");
 
     // Block on an infinite "task" (not a thread) with affinity to Core 0.
     block_on(pin!(task_core0(sys_loop)))

@@ -12,7 +12,7 @@ use esp_idf_sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wif
 use crate::board::Board;
 use crate::wifi_info;
 
-const HTTPD_STACK_SIZE: usize = 10240;
+const HTTPD_STACK_SIZE: usize = 8192;
 const WIFI_AP_CHANNEL: u8 = 3;
 const WIFI_IS_AP: bool = false;
 
@@ -48,8 +48,10 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
         let core_id: i32 = cpu::core().into();
         let counter = req_count.load(Ordering::Relaxed);
         let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
-        log::info!("@@ [WIFI] Stack High Water Mark: {} bytes", stack_high_water_mark);
-        log::info!("@@ [WIFI] loop.. running on Core #{}... {} requests", core_id, counter);
+        log::info!("@@ [WIFI] loop. Core #{} -- {} requests -- stack {} mark",
+            core_id,
+            counter,
+        stack_high_water_mark);
         FreeRtos::delay_ms(1000);
     }
 }
@@ -64,7 +66,7 @@ fn handle_req(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) 
 fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()> {
     log::info!("@@ [WIFI] Configure, then wait for connection");
 
-    let wifi_configuration: Configuration = if (WIFI_IS_AP) {
+    let wifi_configuration: Configuration = if WIFI_IS_AP {
         // For the AP (adhoc wifi) case:
         Configuration::AccessPoint(AccessPointConfiguration {
             ssid: "AP_WIFI_SSID".try_into().unwrap(),
@@ -106,7 +108,7 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()>
     loop {
         let res = wifi.wait_netif_up();
         if let Ok(_value) = res {
-            let ip = if (WIFI_IS_AP) {
+            let ip = if WIFI_IS_AP {
                 wifi.wifi().ap_netif().get_ip_info()
             } else {
                 wifi.wifi().sta_netif().get_ip_info()
