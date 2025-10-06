@@ -34,6 +34,8 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
 
     connect_wifi(&mut wifi)?;
 
+    signal_wifi_ready()?;
+
     let mut server = create_server()?;
 
     let req_count = Arc::new(AtomicI32::new(0));
@@ -69,7 +71,10 @@ Frame counter: {} <br>
 </html>"#,
         frame_counter);
     req.into_ok_response()?
-        .write(html.as_bytes()).ok();
+        .write(html.as_bytes())
+        .inspect_err(|e|
+            log::info!("@@ [WIFI] req.write failed: {}", e))
+        .ok();
     Ok(())
 }
 
@@ -142,3 +147,13 @@ fn create_server() -> anyhow::Result< EspHttpServer<'static> > {
     Ok(EspHttpServer::new(&server_configuration)?)
 }
 
+fn signal_wifi_ready() -> anyhow::Result<()> {
+    log::info!("@@ [WIFI] Wifi is ready");
+
+    let (lock, cvar) = &*(SHARED_DATA.wifi_ready);
+    let mut condition = lock.lock().unwrap();
+    *condition = true;
+    cvar.notify_all();
+
+    Ok(())
+}

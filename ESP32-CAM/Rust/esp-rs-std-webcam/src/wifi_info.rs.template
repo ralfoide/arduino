@@ -3,6 +3,11 @@
 pub const WIFI_SSID: &str = "WIFI_SSID";
 pub const WIFI_PASSWD: &str = "WIFI_PASS";
 
+pub const MQTT_BROKER_IP: &str = "";
+pub const MQTT_PORT: u16 = 1883;
+pub const MQTT_USERNAME: &str = "mqtt_user";
+pub const MQTT_PASSWORD: &str = "mqtt_pass";
+
 // Note: as an alternative we can also read vars from the environment, e.g.:
 // pub const WIFI_SSID: &str = env!("WIFI_SSID");
 // pub const WIFI_PASSWD: &str = env!("WIFI_PASS");

@@ -54,10 +54,16 @@ fn main() -> anyhow::Result<()> {
             esp_rs_std_webcam::task_led::run_led(Board::get())
         })?;
 
-    create_thread("wifi_task\0", 8192, 2, Core::Core1)
+    create_thread("wifi_task\0", 8192, 2, Core::Core0)
         .spawn(|| {
             log_task_info("WIFI");
             esp_rs_std_webcam::task_wifi::run_wifi(Board::get(), sys_loop_wifi)
+        })?;
+
+    create_thread("mqtt_task\0", 4096, 2, Core::Core0)
+        .spawn(|| {
+            log_task_info("MQTT");
+            esp_rs_std_webcam::task_mqtt::run_mqtt()
         })?;
 
     // Block on an infinite "task" (not a thread) with affinity to Core 0.
