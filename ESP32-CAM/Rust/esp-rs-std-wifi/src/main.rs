@@ -6,13 +6,17 @@
 //! Go to 192.168.71.1 to test
 
 use core::convert::TryInto;
-
+use std::ptr;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, Ordering};
 use embedded_svc::{
     http::{Headers, Method},
     io::{Read, Write},
     wifi::{self, AccessPointConfiguration, AuthMethod},
 };
 use embedded_svc::wifi::ClientConfiguration;
+use esp_idf_hal::cpu;
+use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -20,7 +24,7 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::{BlockingWifi, EspWifi},
 };
-use esp_idf_svc::sys::{esp, esp_wifi_set_bandwidth, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
+use esp_idf_svc::sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
 use log::*;
 
 use serde::Deserialize;
@@ -71,13 +75,19 @@ fn main() -> anyhow::Result<()> {
 
     let mut server = create_server()?;
 
-    server.fn_handler("/", Method::Get, |req| {
+    let req_count = Arc::new(AtomicI32::new(0));
+    let req_count_handler1 = req_count.clone();
+    let req_count_handler2 = req_count.clone();
+
+    server.fn_handler("/", Method::Get, move |req| {
+        req_count_handler1.fetch_add(1, Ordering::Relaxed);
         req.into_ok_response()?
             .write_all(INDEX_HTML.as_bytes())
             .map(|_| ())
     })?;
 
-    server.fn_handler::<anyhow::Error, _>("/post", Method::Post, |mut req| {
+    server.fn_handler::<anyhow::Error, _>("/post", Method::Post, move |mut req| {
+        req_count_handler2.fetch_add(1, Ordering::Relaxed);
         let len = req.content_len().unwrap_or(0) as usize;
 
         if len > MAX_LEN {
@@ -103,16 +113,28 @@ fn main() -> anyhow::Result<()> {
         Ok(())
     })?;
 
-    // Keep wifi and the server running beyond when main() returns (forever)
-    // Do not call this if you ever want to stop or access them later.
-    // Otherwise you can either add an infinite loop so the main task
-    // never returns, or you can move them to another thread.
-    // https://doc.rust-lang.org/stable/core/mem/fn.forget.html
-    core::mem::forget(wifi);
-    core::mem::forget(server);
+    loop {
+        let core_id: i32 = cpu::core().into();
+        let counter = req_count.load(Ordering::Relaxed);
+        let stack_high_water_mark = unsafe { uxTaskGetStackHighWaterMark2(ptr::null_mut()) };
+        info!("@@ [WIFI] loop.. Core #{}; {} requests; {} bytes stack mark",
+            core_id,
+            counter,
+            stack_high_water_mark * 4);
+        FreeRtos::delay_ms(1000);
+    }
 
-    // Main task no longer needed, free up some memory
-    Ok(())
+
+    // // Keep wifi and the server running beyond when main() returns (forever)
+    // // Do not call this if you ever want to stop or access them later.
+    // // Otherwise you can either add an infinite loop so the main task
+    // // never returns, or you can move them to another thread.
+    // // https://doc.rust-lang.org/stable/core/mem/fn.forget.html
+    // core::mem::forget(wifi);
+    // core::mem::forget(server);
+    //
+    // // Main task no longer needed, free up some memory
+    // Ok(())
 }
 
 fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> anyhow::Result<()> {
