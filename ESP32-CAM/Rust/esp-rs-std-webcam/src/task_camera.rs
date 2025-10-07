@@ -26,6 +26,9 @@ pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyh
             log::info!("   len: {}", data.len());
             log::info!("   format: {}", framebuffer.format());
 
+            let vec = data.to_vec();
+            SHARED_DATA.provide_last_jpeg(vec)?;
+
             SHARED_DATA.frame_counter.fetch_add(1, Ordering::Relaxed);
             count_event.frame_count += 1;
             sys_loop.post::<CameraCountEvent>(&count_event, delay::BLOCK)?;

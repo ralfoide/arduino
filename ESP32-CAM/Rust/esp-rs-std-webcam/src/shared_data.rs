@@ -1,14 +1,16 @@
-use std::sync::{Condvar, LazyLock, Mutex};
+use std::sync::{Condvar, LazyLock, Mutex, OnceLock};
 use std::sync::atomic::AtomicI32;
 
 pub struct SharedData {
     pub frame_counter: AtomicI32,
+    pub last_jpeg: LazyLock<Mutex< Vec<u8> >>,
     pub wifi_ready: LazyLock<(Mutex<bool>, Condvar)>,
 }
 
 pub static SHARED_DATA: SharedData = SharedData {
     frame_counter: AtomicI32::new(0),
-    wifi_ready: LazyLock::new(|| { (Mutex::new(false), Condvar::new()) }),
+    last_jpeg: LazyLock::new(|| Mutex::new(Vec::new()) ),
+    wifi_ready: LazyLock::new(|| (Mutex::new(false), Condvar::new()) ),
 };
 
 impl SharedData {
@@ -36,4 +38,24 @@ impl SharedData {
         log::info!("@@ [{}] Wifi is ready", name);
         Ok(())
     }
+
+    pub fn provide_last_jpeg(&self, mut jpeg: Vec<u8>) -> anyhow::Result<()> {
+        let mut vec_mutex = self.last_jpeg.lock().unwrap();
+
+        // extend(drain) should just move the content instead of copying it.
+        vec_mutex.clear();
+        vec_mutex.extend(jpeg.drain(..));
+
+        Ok(())
+    }
+
+    pub fn consume_last_jpeg(&self) -> anyhow::Result<Vec<u8>> {
+        let mut vec_mutex = self.last_jpeg.lock().unwrap();
+
+        let mut dest_vec = Vec::new();
+        dest_vec.extend(vec_mutex.drain(..));
+
+        Ok(dest_vec)
+    }
+
 }

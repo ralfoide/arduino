@@ -39,10 +39,15 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
     let mut server = create_server()?;
 
     let req_count = Arc::new(AtomicI32::new(0));
-    let req_count_handler = req_count.clone();
+    let req_count_handler1 = req_count.clone();
+    let req_count_handler2 = req_count.clone();
 
     server.fn_handler("/", Method::Get, move |req| {
-        handle_req(req, &req_count_handler)
+        handle_req(req, &req_count_handler1)
+    })?;
+
+    server.fn_handler("/img", Method::Get, move |req| {
+        handle_img(req, &req_count_handler2)
     })?;
 
     // This task runner must never terminate, to ensure that the wifi & server are never released.
@@ -62,21 +67,48 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
 fn handle_req(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) -> anyhow::Result<()> {
     req_count.fetch_add(1, Ordering::Relaxed);
     let frame_counter = SHARED_DATA.frame_counter.load(Ordering::Relaxed);
+
     let html = format!(
-r#"<html>
+        r#"<html>
 <head>
 <meta http-equiv="Refresh" content="30" />
 </head>
 <body>
 Esp-rs Sample <br>
 Frame counter: {} <br>
+
+<img src="/img" />
+
 </body>
 </html>"#,
         frame_counter);
+
     req.into_ok_response()?
         .write(html.as_bytes())
         .inspect_err(|e|
             log::info!("@@ [WIFI] req.write failed: {}", e))
+        .ok();
+    Ok(())
+}
+
+fn handle_img(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) -> anyhow::Result<()> {
+    req_count.fetch_add(1, Ordering::Relaxed);
+    let jpeg_vec = SHARED_DATA.consume_last_jpeg().unwrap_or(vec![]);
+    let data = jpeg_vec.as_slice();
+
+    const HEADERS: &[(&str, &str)] = &[
+        ("Content-Type", "image/jpeg"),
+        ("Access-Control-Allow-Origin", "*"),
+        ("Cache-Control", "no-cache"),
+    ];
+
+    req.into_response(
+            200,
+            Some("OK"),
+            HEADERS)?
+        .write(data)
+        .inspect_err(|e|
+            log::info!("@@ [WIFI] img.write failed: {}", e))
         .ok();
     Ok(())
 }
