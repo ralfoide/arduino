@@ -34,7 +34,7 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
 
     connect_wifi(&mut wifi)?;
 
-    signal_wifi_ready()?;
+    SHARED_DATA.signal_wifi_ready("WIFI")?;
 
     let mut server = create_server()?;
 
@@ -64,6 +64,9 @@ fn handle_req(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) 
     let frame_counter = SHARED_DATA.frame_counter.load(Ordering::Relaxed);
     let html = format!(
 r#"<html>
+<head>
+<meta http-equiv="Refresh" content="30" />
+</head>
 <body>
 Esp-rs Sample <br>
 Frame counter: {} <br>
@@ -145,15 +148,4 @@ fn create_server() -> anyhow::Result< EspHttpServer<'static> > {
     };
 
     Ok(EspHttpServer::new(&server_configuration)?)
-}
-
-fn signal_wifi_ready() -> anyhow::Result<()> {
-    log::info!("@@ [WIFI] Wifi is ready");
-
-    let (lock, cvar) = &*(SHARED_DATA.wifi_ready);
-    let mut condition = lock.lock().unwrap();
-    *condition = true;
-    cvar.notify_all();
-
-    Ok(())
 }

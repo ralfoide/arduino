@@ -6,16 +6,15 @@ use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::eventloop::{EspEventLoop, System};
 use esp_idf_svc::mqtt::client::{EspMqttClient, EspMqttConnection, EspMqttEvent, MqttClientConfiguration};
 use esp_idf_sys::{uxTaskGetStackHighWaterMark2, EspError};
-use crate::board::Board;
 use crate::shared_data::SHARED_DATA;
-use crate::{shared_data, wifi_info};
+use crate::wifi_info;
 
 const MQTT_CLIENT_ID: &str = "esp-mqtt-demo";
 
 const MQTT_TOPIC: &str = "esp-mqtt/counter";
 
 pub fn run_mqtt() -> anyhow::Result<()> {
-    wait_for_wifi_ready()?;
+    SHARED_DATA.wait_for_wifi_ready("MQTT")?;
 
     let mqtt_url = format!("mqtt://{}:{}", wifi_info::MQTT_BROKER_IP, wifi_info::MQTT_PORT);
     log::info!("@@ [MQTT] URL: {}", mqtt_url);
@@ -26,19 +25,6 @@ pub fn run_mqtt() -> anyhow::Result<()> {
         wifi_info::MQTT_PASSWORD)?;
 
     publish_loop(&mut client)
-}
-
-fn wait_for_wifi_ready() -> anyhow::Result<()> {
-    log::info!("@@ [MQTT] Waiting for wifi...");
-
-    let (lock, cvar) = &*(SHARED_DATA.wifi_ready);
-    let mut condition = lock.lock().unwrap();
-    while !*condition {
-        condition = cvar.wait(condition).unwrap();
-    }
-
-    log::info!("@@ [MQTT] Wifi is ready");
-    Ok(())
 }
 
 fn mqtt_create(

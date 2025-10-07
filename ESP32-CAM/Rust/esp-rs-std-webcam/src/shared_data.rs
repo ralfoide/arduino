@@ -11,3 +11,29 @@ pub static SHARED_DATA: SharedData = SharedData {
     wifi_ready: LazyLock::new(|| { (Mutex::new(false), Condvar::new()) }),
 };
 
+impl SharedData {
+
+    pub fn signal_wifi_ready(&self, name: &str) -> anyhow::Result<()> {
+        log::info!("@@ [{}] Wifi is ready", name);
+
+        let (lock, cvar) = &*(self.wifi_ready);
+        let mut condition = lock.lock().unwrap();
+        *condition = true;
+        cvar.notify_all();
+
+        Ok(())
+    }
+
+    pub fn wait_for_wifi_ready(&self, name: &str) -> anyhow::Result<()> {
+        log::info!("@@ [{}] Waiting for wifi...", name);
+
+        let (lock, cvar) = &*(self.wifi_ready);
+        let mut condition = lock.lock().unwrap();
+        while !*condition {
+            condition = cvar.wait(condition).unwrap();
+        }
+
+        log::info!("@@ [{}] Wifi is ready", name);
+        Ok(())
+    }
+}
