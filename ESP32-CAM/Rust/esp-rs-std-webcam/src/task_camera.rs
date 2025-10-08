@@ -21,19 +21,19 @@ pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyh
 
         if let Some(framebuffer) = framebuffer {
             let data = framebuffer.data();
-            timing.print();
+            // Printfs take ~38 ms
             log::info!("@@ Got framebuffer: {}", framebuffer);
             log::info!("   width: {}", framebuffer.width());
             log::info!("   height: {}", framebuffer.height());
             log::info!("   data: {:p}", data);
             log::info!("   len: {}", data.len());
             log::info!("   format: {}", framebuffer.format());
-            timing.print();
 
+            // This copy takes ~8 ms
             let vec = data.to_vec();
             SHARED_DATA.provide_last_jpeg(vec)?;
-            timing.print();
 
+            // This takes ~6 ms
             SHARED_DATA.frame_counter.fetch_add(1, Ordering::Relaxed);
             count_event.frame_count += 1;
             sys_loop.post::<CameraCountEvent>(&count_event, delay::BLOCK)?;

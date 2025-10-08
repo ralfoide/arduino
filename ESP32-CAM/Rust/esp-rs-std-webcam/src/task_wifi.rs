@@ -110,13 +110,12 @@ fn handle_img(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) 
     let data = jpeg_vec.as_slice();
     let now_ms = utils::ms_since_boot();
     let filename = format!("attachment; filename=\"img_{:08}.jpg\"", now_ms);
-    let len_str = data.len().to_string();
 
     let headers: &[(&str, &str)] = &[
         ("Content-Type", "image/jpeg"),
         ("Access-Control-Allow-Origin", "*"),
         ("Cache-Control", "no-cache"),
-        ("Content-Length", &*len_str),
+        // ("Content-Length", &*len_str),   // discarded by embedded_svc
         ("Content-Disposition", &*filename),
     ];
 
