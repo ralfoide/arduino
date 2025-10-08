@@ -5,6 +5,7 @@ use esp_idf_hal::delay::FreeRtos;
 use esp_idf_svc::eventloop::{EspEvent, EspEventDeserializer, EspEventLoop, EspEventPostData, EspEventSerializer, EspEventSource, EspSystemEventLoop, System};
 use crate::board::Board;
 use crate::shared_data::SHARED_DATA;
+use crate::utils;
 
 pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow::Result<()> {
     let camera_mutex = &board.camera.get().unwrap();
@@ -15,24 +16,28 @@ pub fn run_camera(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyh
     };
 
     loop {
+        let timing = utils::DisplayTimeElapsedMs::start("FRAME");
         let framebuffer = camera.get_framebuffer();
-    
+
         if let Some(framebuffer) = framebuffer {
             let data = framebuffer.data();
+            timing.print();
             log::info!("@@ Got framebuffer: {}", framebuffer);
             log::info!("   width: {}", framebuffer.width());
             log::info!("   height: {}", framebuffer.height());
             log::info!("   data: {:p}", data);
             log::info!("   len: {}", data.len());
             log::info!("   format: {}", framebuffer.format());
+            timing.print();
 
             let vec = data.to_vec();
             SHARED_DATA.provide_last_jpeg(vec)?;
+            timing.print();
 
             SHARED_DATA.frame_counter.fetch_add(1, Ordering::Relaxed);
             count_event.frame_count += 1;
             sys_loop.post::<CameraCountEvent>(&count_event, delay::BLOCK)?;
-
+            timing.print();
         } else {
             log::info!("@@ no framebuffer");
         }

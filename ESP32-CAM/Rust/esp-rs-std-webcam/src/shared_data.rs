@@ -39,12 +39,14 @@ impl SharedData {
         Ok(())
     }
 
-    pub fn provide_last_jpeg(&self, mut jpeg: Vec<u8>) -> anyhow::Result<()> {
+    pub fn provide_last_jpeg(&self, jpeg: Vec<u8>) -> anyhow::Result<()> {
         let mut vec_mutex = self.last_jpeg.lock().unwrap();
 
-        // extend(drain) should just move the content instead of copying it.
-        vec_mutex.clear();
-        vec_mutex.extend(jpeg.drain(..));
+        // // extend(drain) should just move the content instead of copying it.
+        // vec_mutex.clear();
+        // vec_mutex.extend(jpeg.drain(..));
+
+        *vec_mutex = jpeg;
 
         Ok(())
     }

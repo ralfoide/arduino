@@ -1,6 +1,7 @@
 use std::ptr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, Ordering};
+use std::time::SystemTime;
 use embedded_svc::http::Method;
 use embedded_svc::wifi::{AccessPointConfiguration, AuthMethod, ClientConfiguration};
 use esp_idf_hal::cpu;
@@ -11,7 +12,7 @@ use esp_idf_svc::wifi::{BlockingWifi, Configuration, EspWifi};
 use esp_idf_sys::{esp, esp_wifi_set_bandwidth, uxTaskGetStackHighWaterMark2, wifi_bandwidth_t_WIFI_BW_HT20, wifi_interface_t_WIFI_IF_AP};
 use crate::board::Board;
 use crate::shared_data::SHARED_DATA;
-use crate::wifi_info;
+use crate::{utils, wifi_info};
 
 const HTTPD_STACK_SIZE: usize = 8192;
 const WIFI_AP_CHANNEL: u8 = 3;
@@ -65,6 +66,7 @@ pub fn run_wifi(board: &'static Board, sys_loop: EspEventLoop<System>) -> anyhow
 }
 
 fn handle_req(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) -> anyhow::Result<()> {
+    let timing = utils::DisplayTimeElapsedMs::start("WIFI REQ");
     req_count.fetch_add(1, Ordering::Relaxed);
     let frame_counter = SHARED_DATA.frame_counter.load(Ordering::Relaxed);
 
@@ -88,28 +90,45 @@ Frame counter: {} <br>
         .inspect_err(|e|
             log::info!("@@ [WIFI] req.write failed: {}", e))
         .ok();
+    timing.print();
     Ok(())
 }
 
 fn handle_img(req: Request<&mut EspHttpConnection>, req_count: &Arc<AtomicI32>) -> anyhow::Result<()> {
+    let timing = utils::DisplayTimeElapsedMs::start("WIFI REQ IMG");
     req_count.fetch_add(1, Ordering::Relaxed);
-    let jpeg_vec = SHARED_DATA.consume_last_jpeg().unwrap_or(vec![]);
-    let data = jpeg_vec.as_slice();
 
-    const HEADERS: &[(&str, &str)] = &[
+    let jpeg_vec = loop {
+        let vec = SHARED_DATA.consume_last_jpeg().unwrap_or(vec![]);
+        if !vec.is_empty() {
+            break vec;
+        } else {
+            FreeRtos::delay_ms(30);
+        }
+    };
+
+    let data = jpeg_vec.as_slice();
+    let now_ms = utils::ms_since_boot();
+    let filename = format!("attachment; filename=\"img_{:08}.jpg\"", now_ms);
+    let len_str = data.len().to_string();
+
+    let headers: &[(&str, &str)] = &[
         ("Content-Type", "image/jpeg"),
         ("Access-Control-Allow-Origin", "*"),
         ("Cache-Control", "no-cache"),
+        ("Content-Length", &*len_str),
+        ("Content-Disposition", &*filename),
     ];
 
     req.into_response(
             200,
             Some("OK"),
-            HEADERS)?
+            headers)?
         .write(data)
         .inspect_err(|e|
             log::info!("@@ [WIFI] img.write failed: {}", e))
         .ok();
+    timing.print();
     Ok(())
 }
 
